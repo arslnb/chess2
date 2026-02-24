@@ -124,6 +124,22 @@
   }
   .lobby-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
+  .lobby-btn.secondary {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+  .lobby-btn.secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(129,182,76,0.08);
+  }
+
+  .lobby-btn .btn-icon {
+    margin-right: 8px;
+    font-size: 1.1em;
+  }
+
   .lobby-divider {
     color: var(--text-muted);
     font-size: 0.8rem;
@@ -489,6 +505,16 @@
   .connected { background: rgba(129,182,76,0.15); color: var(--accent); border: 1px solid rgba(129,182,76,0.3); }
   .disconnected { background: rgba(224,80,80,0.15); color: var(--danger); border: 1px solid rgba(224,80,80,0.3); }
 
+  /* Thinking indicator */
+  #thinking-indicator {
+    display: none;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    color: var(--energy-purple);
+    text-align: center;
+    animation: pulse 1.2s infinite;
+  }
+
   /* Responsive */
   @media (max-width: 900px) {
     #game-area { flex-direction: column; align-items: center; }
@@ -509,7 +535,9 @@
   <p class="lobby-subtitle">New pieces, new mechanics, same competitive spirit</p>
 
   <div class="lobby-card">
-    <button class="lobby-btn" onclick="createRoom()">Play a Friend</button>
+    <button class="lobby-btn" onclick="createBotGame()"><span class="btn-icon">🤖</span> Play vs Computer</button>
+    <div class="lobby-divider">or play with a friend</div>
+    <button class="lobby-btn secondary" onclick="createRoom()"><span class="btn-icon">👥</span> Create Room</button>
     <div class="lobby-divider">or join a room</div>
     <div class="lobby-row">
       <input class="lobby-input" id="join-code" placeholder="Room code" maxlength="6">
@@ -555,6 +583,7 @@
     <div class="sidebar-card">
       <div class="sidebar-header">Moves</div>
       <div id="move-list"></div>
+      <div id="thinking-indicator">🤖 Computer is thinking…</div>
       <div id="status-bar">Waiting for game to start…</div>
     </div>
 
@@ -710,6 +739,7 @@ let flipped = false;
 let lastMove = null;
 let moveHistory = []; // [{num, white, black}]
 let prevBoard = null; // for tracking captured pieces
+let isBotGame = false;
 
 // Initial piece counts for captured tracking
 const INITIAL_PIECES = {
@@ -791,6 +821,9 @@ function handleMessage(msg) {
         flipped = myColor === BLACK;
       }
 
+      // Track if this is a bot game
+      if (gameState.isBot) isBotGame = true;
+
       // Detect last move for highlighting
       if (gameState.lastMove) {
         lastMove = gameState.lastMove;
@@ -822,6 +855,15 @@ function handleMessage(msg) {
       }
 
       document.getElementById('newgame-btn').style.display = gameState.gameOver ? 'inline-block' : 'none';
+
+      // Thinking indicator for bot games
+      const thinkingEl = document.getElementById('thinking-indicator');
+      if (isBotGame && !gameState.gameOver && gameState.turn !== myColor) {
+        thinkingEl.style.display = 'block';
+      } else {
+        thinkingEl.style.display = 'none';
+      }
+
       break;
     }
 
@@ -841,6 +883,11 @@ function handleMessage(msg) {
 // ============ LOBBY ============
 function createRoom() {
   ws.send(JSON.stringify({ type: 'create' }));
+}
+
+function createBotGame() {
+  isBotGame = true;
+  ws.send(JSON.stringify({ type: 'create_vs_bot' }));
 }
 
 function joinRoom() {
@@ -1117,8 +1164,20 @@ function updatePlayerBars() {
   document.getElementById('avatar-bottom').textContent = botColor === BLACK ? 'B' : 'W';
 
   // Names
-  const topName = topColor === myColor ? `${topColor === WHITE ? 'White' : 'Black'} (You)` : (topColor === WHITE ? 'White' : 'Black');
-  const botName = botColor === myColor ? `${botColor === WHITE ? 'White' : 'Black'} (You)` : (botColor === WHITE ? 'White' : 'Black');
+  const opponentLabel = isBotGame ? '🤖 Computer' : null;
+
+  let topName, botName;
+  if (topColor === myColor) {
+    topName = `${topColor === WHITE ? 'White' : 'Black'} (You)`;
+    botName = opponentLabel || (botColor === WHITE ? 'White' : 'Black');
+  } else if (botColor === myColor) {
+    botName = `${botColor === WHITE ? 'White' : 'Black'} (You)`;
+    topName = opponentLabel || (topColor === WHITE ? 'White' : 'Black');
+  } else {
+    topName = topColor === WHITE ? 'White' : 'Black';
+    botName = botColor === WHITE ? 'White' : 'Black';
+  }
+
   document.getElementById('name-top').textContent = topName;
   document.getElementById('name-bottom').textContent = botName;
 
@@ -1309,10 +1368,18 @@ function updateAllUI() {
     }
   } else {
     const lastLog = gameState.log && gameState.log.length > 0 ? gameState.log[gameState.log.length - 1] : '';
-    if (lastLog.includes('CHECK')) {
-      setStatus(`${turnText} is in check`, 'check');
+    if (isBotGame) {
+      if (lastLog.includes('CHECK')) {
+        setStatus('Computer is in check', 'check');
+      } else {
+        setStatus('Computer is thinking…', '');
+      }
     } else {
-      setStatus(`${turnText} to move`, '');
+      if (lastLog.includes('CHECK')) {
+        setStatus(`${turnText} is in check`, 'check');
+      } else {
+        setStatus(`${turnText} to move`, '');
+      }
     }
   }
 }

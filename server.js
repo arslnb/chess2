@@ -1,4 +1,4 @@
-// Chess 2 Online — WebSocket multiplayer server
+// Chess 2 Online — WebSocket multiplayer server with AI bot
 const express = require('express');
 const http = require('http');
 const { WebSocketServer } = require('ws');
@@ -349,6 +349,60 @@ function executeMove(game, fromR, fromC, toR, toC, moveData) {
   return null;
 }
 
+// Execute move without duel randomness and without logging (for AI search)
+function executeMoveQuiet(game, fromR, fromC, toR, toC, moveData) {
+  const board = game.board;
+  const piece = board[fromR][fromC];
+  const captured = board[toR][toC];
+  const color = piece.color;
+
+  // No duel, no log
+  if (moveData && moveData.enPassant) {
+    const epR = color === WHITE ? toR + 1 : toR - 1;
+    board[epR][toC] = {type:EMPTY, color:0};
+  }
+
+  board[toR][toC] = piece;
+  board[fromR][fromC] = {type:EMPTY, color:0};
+
+  if (moveData && moveData.castle) {
+    const row = toR;
+    if (moveData.castle === 'k') {
+      board[row][5] = board[row][7]; board[row][7] = {type:EMPTY,color:0};
+    } else if (moveData.castle === 'q') {
+      board[row][3] = board[row][0]; board[row][0] = {type:EMPTY,color:0};
+    } else if (moveData.castle === 'dk' || moveData.castle === 'dq') {
+      const dc = moveData.dragonCol;
+      const newDC = moveData.castle === 'dk' ? toC - 1 : toC + 1;
+      board[row][newDC] = board[row][dc]; board[row][dc] = {type:EMPTY,color:0};
+    }
+  }
+
+  if (piece.type === KING) game.castleRights[color].kMoved = true;
+  if (piece.type === ROOK) {
+    const row = color === WHITE ? 7 : 0;
+    if (fromC === 0 && fromR === row) game.castleRights[color].lrMoved = true;
+    if (fromC === 7 && fromR === row) game.castleRights[color].rrMoved = true;
+  }
+  if (piece.type === DRAGON) {
+    const row = color === WHITE ? 7 : 0;
+    if (fromR === row) {
+      if (fromC > 4) game.castleRights[color].rdMoved = true;
+      else game.castleRights[color].ldMoved = true;
+    }
+  }
+
+  game.enPassant = null;
+  if (piece.type === PAWN && Math.abs(toR - fromR) === 2) {
+    game.enPassant = { r: (fromR + toR) / 2, c: fromC };
+  }
+
+  // Auto-promote to queen for AI search
+  if (piece.type === PAWN && (toR === (color === WHITE ? 0 : 7))) {
+    board[toR][toC] = { type: QUEEN, color };
+  }
+}
+
 function endTurn(game) {
   if (game.cloakTurnsLeft[game.turn] > 0) {
     game.cloakTurnsLeft[game.turn]--;
@@ -380,6 +434,247 @@ function endTurn(game) {
   return status;
 }
 
+// ============ AI ENGINE (minimax with alpha-beta) ============
+const PIECE_VALUES = { [PAWN]:100, [KNIGHT]:320, [BISHOP]:330, [ROOK]:500, [QUEEN]:900, [KING]:20000, [DRAGON]:700, [SHADOW]:400 };
+
+const PST_PAWN_W = [[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]];
+const PST_KNIGHT_W = [[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]];
+const PST_BISHOP_W = [[-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,10,10,10,10,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],[-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]];
+const PST_ROOK_W = [[0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]];
+const PST_QUEEN_W = [[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]];
+const PST_KING_W = [[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]];
+const PST = { [PAWN]:PST_PAWN_W, [KNIGHT]:PST_KNIGHT_W, [BISHOP]:PST_BISHOP_W, [ROOK]:PST_ROOK_W, [QUEEN]:PST_QUEEN_W, [KING]:PST_KING_W, [DRAGON]:PST_QUEEN_W, [SHADOW]:PST_KNIGHT_W };
+
+function getPST(type, color, r, c) {
+  const t = PST[type];
+  if (!t) return 0;
+  return t[color === WHITE ? r : 7-r][c];
+}
+
+function evaluateBoard(game, aiColor) {
+  const board = game.board;
+  const humanColor = opponent(aiColor);
+  let score = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (p.type === EMPTY) continue;
+      const val = PIECE_VALUES[p.type] + getPST(p.type, p.color, r, c);
+      if (p.color === aiColor) score += val; else score -= val;
+    }
+  }
+  // Mobility
+  let aiMob = 0, hMob = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (board[r][c].color === aiColor) aiMob += getRawMoves_(board, r, c, game.enPassant, game.castleRights).length;
+      else if (board[r][c].color === humanColor) hMob += getRawMoves_(board, r, c, game.enPassant, game.castleRights).length;
+    }
+  }
+  score += (aiMob - hMob) * 3;
+  // Energy
+  score += (game.energy[aiColor] - game.energy[humanColor]) * 15;
+  // Check bonuses
+  if (isInCheck_(board, humanColor, game.enPassant, game.castleRights)) score += 30;
+  if (isInCheck_(board, aiColor, game.enPassant, game.castleRights)) score -= 30;
+  return score;
+}
+
+function getAllMovesForColor(game, color) {
+  const all = [];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (game.board[r][c].color === color) {
+        const moves = getLegalMoves_(game.board, r, c, game.enPassant, game.castleRights);
+        for (const m of moves) {
+          all.push({fromR:r, fromC:c, toR:m.r, toC:m.c, moveData:m});
+        }
+      }
+    }
+  }
+  return all;
+}
+
+function saveGameState(game) {
+  return {
+    board: game.board.map(r => r.map(c => ({...c}))),
+    turn: game.turn,
+    energy: {...game.energy},
+    enPassant: game.enPassant ? {...game.enPassant} : null,
+    castleRights: { [WHITE]:{...game.castleRights[WHITE]}, [BLACK]:{...game.castleRights[BLACK]} },
+    cloaked: { [WHITE]: game.cloaked[WHITE] ? {...game.cloaked[WHITE]} : null, [BLACK]: game.cloaked[BLACK] ? {...game.cloaked[BLACK]} : null },
+    cloakTurnsLeft: {...game.cloakTurnsLeft},
+    gameOver: game.gameOver,
+    winner: game.winner,
+    moveCount: game.moveCount,
+    log: [...game.log]
+  };
+}
+
+function restoreGameState(game, s) {
+  game.board = s.board;
+  game.turn = s.turn;
+  game.energy = s.energy;
+  game.enPassant = s.enPassant;
+  game.castleRights = s.castleRights;
+  game.cloaked = s.cloaked;
+  game.cloakTurnsLeft = s.cloakTurnsLeft;
+  game.gameOver = s.gameOver;
+  game.winner = s.winner;
+  game.moveCount = s.moveCount;
+  game.log = s.log;
+}
+
+function orderMoves(game, moves) {
+  return moves.sort((a,b) => {
+    const ca = game.board[a.toR][a.toC].type !== EMPTY ? (PIECE_VALUES[game.board[a.toR][a.toC].type] || 0) : 0;
+    const cb = game.board[b.toR][b.toC].type !== EMPTY ? (PIECE_VALUES[game.board[b.toR][b.toC].type] || 0) : 0;
+    return cb - ca;
+  });
+}
+
+function minimax(game, depth, alpha, beta, isMax, aiColor) {
+  if (depth === 0) return evaluateBoard(game, aiColor);
+  const color = isMax ? aiColor : opponent(aiColor);
+  if (!findKing_(game.board, color)) return isMax ? -100000 : 100000;
+  let moves = getAllMovesForColor(game, color);
+  if (moves.length === 0) return isInCheck_(game.board, color, game.enPassant, game.castleRights) ? (isMax ? -100000-depth : 100000+depth) : 0;
+  moves = orderMoves(game, moves);
+
+  if (isMax) {
+    let max = -Infinity;
+    for (const m of moves) {
+      const s = saveGameState(game);
+      executeMoveQuiet(game, m.fromR, m.fromC, m.toR, m.toC, m.moveData);
+      // Simulate turn change for search
+      game.turn = opponent(game.turn);
+      const v = minimax(game, depth-1, alpha, beta, false, aiColor);
+      restoreGameState(game, s);
+      max = Math.max(max, v);
+      alpha = Math.max(alpha, v);
+      if (beta <= alpha) break;
+    }
+    return max;
+  } else {
+    let min = Infinity;
+    for (const m of moves) {
+      const s = saveGameState(game);
+      executeMoveQuiet(game, m.fromR, m.fromC, m.toR, m.toC, m.moveData);
+      game.turn = opponent(game.turn);
+      const v = minimax(game, depth-1, alpha, beta, true, aiColor);
+      restoreGameState(game, s);
+      min = Math.min(min, v);
+      beta = Math.min(beta, v);
+      if (beta <= alpha) break;
+    }
+    return min;
+  }
+}
+
+const AI_DEPTH = 3;
+
+function findBestMove(game, aiColor) {
+  let moves = orderMoves(game, getAllMovesForColor(game, aiColor));
+  if (!moves.length) return null;
+  let best = null, bestEval = -Infinity;
+  for (const m of moves) {
+    const s = saveGameState(game);
+    executeMoveQuiet(game, m.fromR, m.fromC, m.toR, m.toC, m.moveData);
+    game.turn = opponent(game.turn);
+    const v = minimax(game, AI_DEPTH-1, -Infinity, Infinity, false, aiColor);
+    restoreGameState(game, s);
+    if (v > bestEval) { bestEval = v; best = m; }
+  }
+  return best;
+}
+
+function triggerAIMove(room) {
+  const g = room.game;
+  const aiColor = room.botColor;
+  if (g.gameOver || g.turn !== aiColor) return;
+
+  // AI cloak: 30% chance if shadow is available
+  if (g.energy[aiColor] >= 1 && !g.cloaked[aiColor]) {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (g.board[r][c].type === SHADOW && g.board[r][c].color === aiColor && Math.random() < 0.3) {
+          g.energy[aiColor] -= 1;
+          g.cloaked[aiColor] = {r,c};
+          g.cloakTurnsLeft[aiColor] = 2;
+          g.log.push(`👻 Computer's Shadow cloaks!`);
+          break;
+        }
+      }
+    }
+  }
+
+  // AI decree: if 2+ enemy pieces adjacent to king
+  if (g.energy[aiColor] >= 3) {
+    const king = findKing_(g.board, aiColor);
+    if (king) {
+      let adj = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const er = king.r + dr, ec = king.c + dc;
+          if (inBounds(er, ec) && g.board[er][ec].color === opponent(aiColor)) adj++;
+        }
+      }
+      if (adj >= 2) {
+        g.energy[aiColor] -= 3;
+        let pushed = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const er = king.r + dr, ec = king.c + dc;
+            if (!inBounds(er, ec)) continue;
+            if (g.board[er][ec].color === opponent(aiColor)) {
+              const pr = er + dr, pc = ec + dc;
+              if (inBounds(pr, pc) && isEmpty_(g.board, pr, pc)) {
+                g.board[pr][pc] = g.board[er][ec];
+                g.board[er][ec] = {type:EMPTY, color:0};
+                pushed++;
+              } else if (!inBounds(pr, pc)) {
+                g.board[er][ec] = {type:EMPTY, color:0};
+                pushed++;
+              }
+            }
+          }
+        }
+        g.log.push(`👑 Computer's Decree! ${pushed} enemies pushed!`);
+        endTurn(g);
+        broadcastRoom(room);
+        // Check if it's still AI's turn (shouldn't be, but safety)
+        if (!g.gameOver && g.turn === aiColor) {
+          setTimeout(() => triggerAIMove(room), 500);
+        }
+        return;
+      }
+    }
+  }
+
+  // Find best move via minimax
+  const best = findBestMove(g, aiColor);
+  if (!best) return;
+
+  const result = executeMove(g, best.fromR, best.fromC, best.toR, best.toC, best.moveData);
+  if (result === 'promotion') {
+    // AI auto-promotes to Queen
+    g.board[best.toR][best.toC] = { type: QUEEN, color: aiColor };
+    g.log.push(`⬆️ Computer promotes to Queen!`);
+    room.promotionPending = null;
+  }
+
+  const status = endTurn(g);
+  broadcastRoom(room);
+
+  // If somehow still AI's turn, continue
+  if (!g.gameOver && g.turn === aiColor) {
+    setTimeout(() => triggerAIMove(room), 500);
+  }
+}
+
+
 // ============ ROOMS ============
 const rooms = new Map();
 
@@ -391,7 +686,9 @@ function createRoom() {
     players: { [WHITE]: null, [BLACK]: null },
     spectators: [],
     promotionPending: null, // {r, c, color}
-    created: Date.now()
+    created: Date.now(),
+    isBot: false,
+    botColor: null
   };
   rooms.set(id, room);
   return room;
@@ -428,7 +725,8 @@ function getClientState(room, playerColor) {
     cloaked: cloakInfo,
     enPassant: g.enPassant,
     castleRights: g.castleRights,
-    promotionPending: room.promotionPending
+    promotionPending: room.promotionPending,
+    isBot: room.isBot
   };
 }
 
@@ -480,6 +778,19 @@ wss.on('connection', (ws) => {
         myColor = WHITE;
         room.players[WHITE] = ws;
         ws.send(JSON.stringify({ type: 'created', roomId: room.id, yourColor: WHITE }));
+        broadcastRoom(room);
+        break;
+      }
+
+      case 'create_vs_bot': {
+        const room = createRoom();
+        myRoom = room;
+        myColor = WHITE;
+        room.players[WHITE] = ws;
+        room.isBot = true;
+        room.botColor = BLACK;
+        // No BLACK player ws — the bot is server-side
+        ws.send(JSON.stringify({ type: 'joined', roomId: room.id, yourColor: WHITE }));
         broadcastRoom(room);
         break;
       }
@@ -538,6 +849,11 @@ wss.on('connection', (ws) => {
 
         const status = endTurn(g);
         broadcastRoom(myRoom);
+
+        // If it's now the bot's turn, trigger AI
+        if (myRoom.isBot && !g.gameOver && g.turn === myRoom.botColor) {
+          setTimeout(() => triggerAIMove(myRoom), 600);
+        }
         break;
       }
 
@@ -554,6 +870,11 @@ wss.on('connection', (ws) => {
 
         const status = endTurn(myRoom.game);
         broadcastRoom(myRoom);
+
+        // If it's now the bot's turn, trigger AI
+        if (myRoom.isBot && !myRoom.game.gameOver && myRoom.game.turn === myRoom.botColor) {
+          setTimeout(() => triggerAIMove(myRoom), 600);
+        }
         break;
       }
 
@@ -589,6 +910,11 @@ wss.on('connection', (ws) => {
         g.log.push(`👑 King's Decree! ${pushed} enemies pushed away!`);
         endTurn(g);
         broadcastRoom(myRoom);
+
+        // If it's now the bot's turn, trigger AI
+        if (myRoom.isBot && !g.gameOver && g.turn === myRoom.botColor) {
+          setTimeout(() => triggerAIMove(myRoom), 600);
+        }
         break;
       }
 
@@ -623,26 +949,47 @@ wss.on('connection', (ws) => {
 
       case 'new_game': {
         if (!myRoom) return;
-        // Only allow if both players agree or game is over
+        // Only allow if game is over
         if (myRoom.game.gameOver) {
           myRoom.game = createGame();
           myRoom.promotionPending = null;
-          // Swap colors
-          const tmpWs = myRoom.players[WHITE];
-          myRoom.players[WHITE] = myRoom.players[BLACK];
-          myRoom.players[BLACK] = tmpWs;
-          // Notify both of new colors
-          for (const col of [WHITE, BLACK]) {
-            const ws2 = myRoom.players[col];
-            if (ws2 && ws2.readyState === 1) {
-              ws2.send(JSON.stringify({ type: 'color_swap', yourColor: col }));
+
+          if (myRoom.isBot) {
+            // Swap colors: player gets opposite color
+            const humanColor = myColor === WHITE ? BLACK : WHITE;
+            myColor = humanColor;
+            myRoom.botColor = opponent(humanColor);
+
+            // Reassign player socket to new color
+            myRoom.players = { [WHITE]: null, [BLACK]: null };
+            myRoom.players[myColor] = ws;
+
+            ws.send(JSON.stringify({ type: 'color_swap', yourColor: myColor }));
+            myRoom.game.log.push('🎮 New game! Colors swapped.');
+            broadcastRoom(myRoom);
+
+            // If bot is white (goes first), trigger AI
+            if (myRoom.botColor === WHITE) {
+              setTimeout(() => triggerAIMove(myRoom), 600);
             }
+          } else {
+            // Swap colors for PvP
+            const tmpWs = myRoom.players[WHITE];
+            myRoom.players[WHITE] = myRoom.players[BLACK];
+            myRoom.players[BLACK] = tmpWs;
+            // Notify both of new colors
+            for (const col of [WHITE, BLACK]) {
+              const ws2 = myRoom.players[col];
+              if (ws2 && ws2.readyState === 1) {
+                ws2.send(JSON.stringify({ type: 'color_swap', yourColor: col }));
+              }
+            }
+            // Update our own reference
+            if (ws === myRoom.players[WHITE]) myColor = WHITE;
+            else if (ws === myRoom.players[BLACK]) myColor = BLACK;
+            myRoom.game.log.push('🎮 New game! Colors swapped.');
+            broadcastRoom(myRoom);
           }
-          // Update our own reference
-          if (ws === myRoom.players[WHITE]) myColor = WHITE;
-          else if (ws === myRoom.players[BLACK]) myColor = BLACK;
-          myRoom.game.log.push('🎮 New game! Colors swapped.');
-          broadcastRoom(myRoom);
         }
         break;
       }
