@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess 2 — Online</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    color: #e0e0e0;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    margin-top: 30px;
+    background: linear-gradient(135deg, #f0c040, #e06040, #c040f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+  }
+  h1 span { font-weight: 300; font-size: 1.2rem; display: block; color: #888; -webkit-text-fill-color: #888; }
+
+  /* Lobby */
+  #lobby {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-top: 60px;
+  }
+  #lobby p { color: #888; font-size: 0.9rem; }
+
+  .lobby-btn {
+    background: linear-gradient(135deg, #2a1a4a, #1a2a4a);
+    border: 1px solid #4a3a6a;
+    color: #d0c0f0;
+    padding: 16px 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    min-width: 260px;
+  }
+  .lobby-btn:hover { border-color: #a080f0; background: linear-gradient(135deg, #3a2a5a, #2a3a5a); transform: translateY(-1px); }
+
+  .lobby-input {
+    background: #12121a;
+    border: 1px solid #3a3a4a;
+    color: #e0e0e0;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    text-align: center;
+    width: 200px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+  .lobby-input::placeholder { letter-spacing: 1px; text-transform: none; color: #555; }
+  .lobby-input:focus { outline: none; border-color: #a080f0; }
+
+  .lobby-row { display: flex; gap: 10px; align-items: center; }
+
+  #room-link {
+    background: #16161e;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    padding: 16px 24px;
+    text-align: center;
+    max-width: 500px;
+    display: none;
+  }
+  #room-link .code {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 6px;
+    color: #a080f0;
+    margin: 8px 0;
+  }
+  #room-link .hint { font-size: 0.75rem; color: #666; }
+  #room-link .copy-btn {
+    background: #1e1e2e;
+    border: 1px solid #3a3a4a;
+    color: #c0c0d0;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+  #room-link .copy-btn:hover { border-color: #a080f0; }
+
+  #waiting-msg {
+    display: none;
+    color: #a080f0;
+    font-size: 0.9rem;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* Game */
+  #game-area { display: none; }
+
+  #top-bar {
+    display: flex;
+    gap: 20px;
+    margin: 15px 0;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  #top-bar .info-box {
+    background: #16161e;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    padding: 10px 20px;
+    text-align: center;
+    min-width: 120px;
+  }
+  #top-bar .info-box .label { font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+  #top-bar .info-box .value { font-size: 1.1rem; font-weight: 600; margin-top: 2px; }
+  .turn-white { color: #f0e0c0; }
+  .turn-black { color: #a080f0; }
+
+  #main-area {
+    display: flex;
+    gap: 30px;
+    margin-top: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  #board-container { position: relative; }
+
+  canvas#board {
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(100, 60, 200, 0.15);
+    cursor: pointer;
+    max-width: 100%;
+  }
+
+  #side-panel {
+    background: #12121a;
+    border: 1px solid #2a2a3a;
+    border-radius: 12px;
+    padding: 20px;
+    width: 280px;
+    max-height: 640px;
+    overflow-y: auto;
+  }
+  #side-panel h2 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; color: #c0c0d0; }
+
+  #log {
+    font-size: 0.8rem;
+    color: #888;
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+  }
+  #log div { padding: 2px 0; border-bottom: 1px solid #1a1a24; }
+
+  .rules-section { margin-top: 10px; }
+  .rules-section h3 { font-size: 0.85rem; color: #a080f0; margin-bottom: 5px; }
+  .rules-section p { font-size: 0.75rem; color: #666; line-height: 1.5; margin-bottom: 8px; }
+  .piece-legend { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .piece-legend .symbol { font-size: 1.4rem; width: 28px; text-align: center; }
+  .piece-legend .desc { font-size: 0.72rem; color: #777; }
+
+  #status-bar {
+    margin-top: 15px;
+    padding: 12px 30px;
+    background: #16161e;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    color: #aaa;
+    text-align: center;
+    min-width: 300px;
+    max-width: 90vw;
+  }
+  #status-bar.check { border-color: #e04040; color: #ff6060; }
+  #status-bar.win { border-color: #40e040; color: #60ff60; }
+
+  button.action-btn {
+    background: #1e1e2e;
+    border: 1px solid #3a3a4a;
+    color: #c0c0d0;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  button.action-btn:hover { background: #2a2a3e; border-color: #a080f0; }
+
+  #buttons { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+  #energy-display { display: flex; gap: 20px; }
+  .energy-bar { display: flex; align-items: center; gap: 6px; }
+  .energy-bar .pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #2a2a3a;
+    transition: background 0.3s;
+  }
+  .energy-bar .pip.active-w { background: #f0c040; box-shadow: 0 0 6px #f0c040; }
+  .energy-bar .pip.active-b { background: #a060f0; box-shadow: 0 0 6px #a060f0; }
+
+  #color-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .badge-white { background: rgba(240,200,100,0.15); color: #f0c040; border: 1px solid rgba(240,200,100,0.3); }
+  .badge-black { background: rgba(160,128,240,0.15); color: #a080f0; border: 1px solid rgba(160,128,240,0.3); }
+  .badge-spectator { background: rgba(100,100,100,0.15); color: #888; border: 1px solid rgba(100,100,100,0.3); }
+
+  /* Promotion overlay */
+  #promo-overlay {
+    display: none;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  #promo-overlay.active { display: flex; }
+  #promo-box {
+    background: #1a1a2a;
+    border: 2px solid #a080f0;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    gap: 16px;
+  }
+  .promo-btn {
+    font-size: 2.4rem;
+    width: 60px; height: 60px;
+    border-radius: 12px;
+    border: 1px solid #3a3a4a;
+    background: #12121a;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .promo-btn:hover { border-color: #a080f0; }
+
+  #connection-status {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    z-index: 50;
+  }
+  .connected { background: rgba(40,200,40,0.15); color: #4d4; border: 1px solid rgba(40,200,40,0.3); }
+  .disconnected { background: rgba(200,40,40,0.15); color: #d44; border: 1px solid rgba(200,40,40,0.3); }
+</style>
+</head>
+<body>
+
+<div id="connection-status" class="disconnected">Disconnected</div>
+
+<h1>CHESS 2 <span>Online</span></h1>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <p>Play Chess 2 with a friend online</p>
+  <button class="lobby-btn" onclick="createRoom()">🎮 Create Room</button>
+  <div style="color:#555; font-size:0.8rem;">— or —</div>
+  <div class="lobby-row">
+    <input class="lobby-input" id="join-code" placeholder="Room code" maxlength="6">
+    <button class="lobby-btn" style="min-width:auto;padding:12px 24px;" onclick="joinRoom()">Join</button>
+  </div>
+  <div id="room-link">
+    <div class="hint">Share this room code with your opponent:</div>
+    <div class="code" id="room-code-display"></div>
+    <button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
+    <div class="hint" style="margin-top:8px;">Or share the URL directly</div>
+  </div>
+  <div id="waiting-msg">⏳ Waiting for opponent to join…</div>
+</div>
+
+<!-- GAME -->
+<div id="game-area">
+  <div id="top-bar">
+    <div class="info-box">
+      <div class="label">You</div>
+      <div class="value"><span id="color-badge">—</span></div>
+    </div>
+    <div class="info-box">
+      <div class="label">Turn</div>
+      <div class="value" id="turn-display">White</div>
+    </div>
+    <div class="info-box">
+      <div class="label">Move</div>
+      <div class="value" id="move-count">1</div>
+    </div>
+    <div class="info-box">
+      <div class="label">Energy</div>
+      <div id="energy-display">
+        <div class="energy-bar" id="energy-w"></div>
+        <div class="energy-bar" id="energy-b"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-area">
+    <div id="board-container">
+      <canvas id="board" width="640" height="640"></canvas>
+    </div>
+    <div id="side-panel">
+      <h2>⚡ New in Chess 2</h2>
+      <div class="rules-section">
+        <h3>New Pieces</h3>
+        <div class="piece-legend"><span class="symbol">🐉</span><span class="desc"><b>Dragon</b> — Moves like Queen, max 3 sq. Can leap 1 piece.</span></div>
+        <div class="piece-legend"><span class="symbol">🥷</span><span class="desc"><b>Shadow</b> — Knight + 1-sq diagonal. Can cloak (invisible 1 turn).</span></div>
+
+        <h3>Mechanics</h3>
+        <p>⚡ <b>Energy</b> — +1 per turn (max 3). Powers special abilities.</p>
+        <p>👻 <b>Shadow Cloak</b> (1⚡) — Right-click your Shadow to make it invisible for 1 turn.</p>
+        <p>💥 <b>King's Decree</b> (3⚡) — Push all adjacent enemies 1 square outward.</p>
+        <p>🎯 <b>Duels</b> — 15% chance both pieces are destroyed on capture.</p>
+        <p>🏰 <b>Castling 2.0</b> — Can castle with Dragon too.</p>
+      </div>
+
+      <h2 style="margin-top:15px;">📜 Move Log</h2>
+      <div id="log"></div>
+
+      <div id="buttons">
+        <button class="action-btn" id="decree-btn" onclick="sendDecree()">⚡ Decree</button>
+        <button class="action-btn" id="newgame-btn" onclick="sendNewGame()" style="display:none;">🔄 New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="status-bar">Waiting for game to start…</div>
+</div>
+
+<!-- Promotion overlay -->
+<div id="promo-overlay">
+  <div id="promo-box"></div>
+</div>
+
+<script>
+// ============ CONFIG ============
+const EMPTY = 0, PAWN = 1, KNIGHT = 2, BISHOP = 3, ROOK = 4, QUEEN = 5, KING = 6, DRAGON = 7, SHADOW = 8;
+const WHITE = 1, BLACK = 2;
+const PIECE_NAMES = ['','Pawn','Knight','Bishop','Rook','Queen','King','Dragon','Shadow'];
+const PIECE_SYMBOLS = {
+  [WHITE]: { [PAWN]:'♙', [KNIGHT]:'♘', [BISHOP]:'♗', [ROOK]:'♖', [QUEEN]:'♕', [KING]:'♔', [DRAGON]:'🐉', [SHADOW]:'🥷' },
+  [BLACK]: { [PAWN]:'♟', [KNIGHT]:'♞', [BISHOP]:'♝', [ROOK]:'♜', [QUEEN]:'♛', [KING]:'♚', [DRAGON]:'🐲', [SHADOW]:'👤' }
+};
+
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const SQ = 80;
+const LIGHT = '#2a2838';
+const DARK = '#1e1c2c';
+const MOVE_DOT = 'rgba(160, 128, 240, 0.6)';
+const CAPTURE_RING = 'rgba(240, 80, 80, 0.5)';
+const SELECTED_BG = 'rgba(240, 192, 64, 0.3)';
+
+let ws = null;
+let myColor = null;
+let roomId = null;
+let gameState = null;
+let selected = null;
+let validMoves = [];
+let decreeMode = false;
+let flipped = false; // Flip board for black
+
+// ============ WEBSOCKET ============
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+
+  ws.onopen = () => {
+    document.getElementById('connection-status').textContent = 'Connected';
+    document.getElementById('connection-status').className = 'connected';
+
+    // Check URL for room code
+    const params = new URLSearchParams(location.search);
+    const code = params.get('room');
+    if (code) {
+      document.getElementById('join-code').value = code;
+      joinRoom();
+    }
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleMessage(msg);
+  };
+
+  ws.onclose = () => {
+    document.getElementById('connection-status').textContent = 'Disconnected';
+    document.getElementById('connection-status').className = 'disconnected';
+    setTimeout(connect, 2000);
+  };
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'created':
+      roomId = msg.roomId;
+      myColor = msg.yourColor;
+      document.getElementById('room-code-display').textContent = roomId.toUpperCase();
+      document.getElementById('room-link').style.display = 'block';
+      document.getElementById('waiting-msg').style.display = 'block';
+      history.replaceState(null, '', `?room=${roomId}`);
+      break;
+
+    case 'joined':
+      roomId = msg.roomId;
+      myColor = msg.yourColor;
+      history.replaceState(null, '', `?room=${roomId}`);
+      showGame();
+      break;
+
+    case 'spectating':
+      roomId = msg.roomId;
+      myColor = null;
+      showGame();
+      break;
+
+    case 'opponent_joined':
+      showGame();
+      break;
+
+    case 'opponent_left':
+      setStatus('⚠️ Opponent disconnected. They can rejoin with the same link.', '');
+      break;
+
+    case 'color_swap':
+      myColor = msg.yourColor;
+      flipped = myColor === BLACK;
+      updateColorBadge();
+      break;
+
+    case 'state':
+      gameState = msg.state;
+      if (msg.yourColor !== undefined && msg.yourColor !== null) {
+        myColor = msg.yourColor;
+        flipped = myColor === BLACK;
+      }
+      selected = null;
+      validMoves = [];
+      updateUI();
+      drawBoard();
+
+      // Promotion
+      if (gameState.promotionPending && gameState.promotionPending.color === myColor) {
+        showPromotionUI(gameState.promotionPending.color);
+      } else {
+        document.getElementById('promo-overlay').classList.remove('active');
+      }
+
+      // New game button
+      document.getElementById('newgame-btn').style.display = gameState.gameOver ? 'inline-block' : 'none';
+      break;
+
+    case 'legal_moves':
+      if (selected && selected.r === msg.r && selected.c === msg.c) {
+        validMoves = msg.moves;
+        drawBoard();
+      }
+      break;
+
+    case 'error':
+      alert(msg.message);
+      break;
+  }
+}
+
+// ============ LOBBY ============
+function createRoom() {
+  ws.send(JSON.stringify({ type: 'create' }));
+}
+
+function joinRoom() {
+  const code = document.getElementById('join-code').value.trim().toLowerCase();
+  if (!code) return;
+  ws.send(JSON.stringify({ type: 'join', roomId: code }));
+}
+
+function copyLink() {
+  const url = `${location.origin}?room=${roomId}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Link', 2000);
+  });
+}
+
+function showGame() {
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('game-area').style.display = 'block';
+  flipped = myColor === BLACK;
+  updateColorBadge();
+}
+
+function updateColorBadge() {
+  const badge = document.getElementById('color-badge');
+  if (myColor === WHITE) {
+    badge.textContent = 'WHITE';
+    badge.className = 'badge-white';
+  } else if (myColor === BLACK) {
+    badge.textContent = 'BLACK';
+    badge.className = 'badge-black';
+  } else {
+    badge.textContent = 'SPECTATOR';
+    badge.className = 'badge-spectator';
+  }
+}
+
+// ============ GAME ACTIONS ============
+function sendDecree() {
+  if (!gameState || gameState.turn !== myColor || gameState.gameOver) return;
+  if (gameState.energy[myColor] < 3) {
+    setStatus('Need 3 energy for King\'s Decree!');
+    return;
+  }
+  ws.send(JSON.stringify({ type: 'decree' }));
+}
+
+function sendNewGame() {
+  ws.send(JSON.stringify({ type: 'new_game' }));
+}
+
+function showPromotionUI(color) {
+  const options = [QUEEN, ROOK, BISHOP, KNIGHT, DRAGON];
+  const box = document.getElementById('promo-box');
+  box.innerHTML = '';
+  for (const t of options) {
+    const btn = document.createElement('button');
+    btn.className = 'promo-btn';
+    btn.innerText = PIECE_SYMBOLS[color][t];
+    btn.title = PIECE_NAMES[t];
+    btn.onclick = () => {
+      ws.send(JSON.stringify({ type: 'promote', pieceType: t }));
+      document.getElementById('promo-overlay').classList.remove('active');
+    };
+    box.appendChild(btn);
+  }
+  document.getElementById('promo-overlay').classList.add('active');
+}
+
+// ============ BOARD INTERACTION ============
+function boardCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scale = 640 / rect.width;
+  const x = (e.clientX - rect.left) * scale;
+  const y = (e.clientY - rect.top) * scale;
+  let c = Math.floor(x / SQ), r = Math.floor(y / SQ);
+  if (flipped) { r = 7 - r; c = 7 - c; }
+  return { r, c };
+}
+
+canvas.addEventListener('click', (e) => {
+  if (!gameState || !myColor || gameState.gameOver) return;
+  if (gameState.turn !== myColor) return;
+  if (gameState.promotionPending) return;
+
+  const { r, c } = boardCoords(e);
+  if (r < 0 || r > 7 || c < 0 || c > 7) return;
+
+  // If clicking a valid move target
+  if (selected && validMoves.length) {
+    const move = validMoves.find(m => m.r === r && m.c === c);
+    if (move) {
+      ws.send(JSON.stringify({ type: 'move', fromR: selected.r, fromC: selected.c, toR: r, toC: c }));
+      selected = null;
+      validMoves = [];
+      drawBoard();
+      return;
+    }
+  }
+
+  // Select piece
+  const board = gameState.board;
+  if (board[r][c].color === myColor) {
+    selected = { r, c };
+    validMoves = [];
+    drawBoard();
+    ws.send(JSON.stringify({ type: 'get_legal_moves', r, c }));
+  } else {
+    selected = null;
+    validMoves = [];
+    drawBoard();
+  }
+});
+
+// Right-click for shadow cloak
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (!gameState || !myColor || gameState.gameOver) return;
+  if (gameState.turn !== myColor) return;
+
+  const { r, c } = boardCoords(e);
+  if (r < 0 || r > 7 || c < 0 || c > 7) return;
+
+  const board = gameState.board;
+  if (board[r][c].type === SHADOW && board[r][c].color === myColor) {
+    ws.send(JSON.stringify({ type: 'cloak', r, c }));
+  }
+});
+
+// ============ DRAWING ============
+function drawBoard() {
+  if (!gameState) return;
+  const board = gameState.board;
+  ctx.clearRect(0, 0, 640, 640);
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const dr = flipped ? 7 - r : r;
+      const dc = flipped ? 7 - c : c;
+      const isLight = (dr + dc) % 2 === 0;
+      ctx.fillStyle = isLight ? LIGHT : DARK;
+      ctx.fillRect(c * SQ, r * SQ, SQ, SQ);
+    }
+  }
+
+  // Selected square
+  if (selected) {
+    const sr = flipped ? 7 - selected.r : selected.r;
+    const sc = flipped ? 7 - selected.c : selected.c;
+    ctx.fillStyle = SELECTED_BG;
+    ctx.fillRect(sc * SQ, sr * SQ, SQ, SQ);
+  }
+
+  // Valid moves
+  for (const m of validMoves) {
+    const mr = flipped ? 7 - m.r : m.r;
+    const mc = flipped ? 7 - m.c : m.c;
+    if (board[m.r][m.c].type !== EMPTY || m.enPassant) {
+      ctx.strokeStyle = CAPTURE_RING;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(mc * SQ + SQ/2, mr * SQ + SQ/2, SQ/2 - 6, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = MOVE_DOT;
+      ctx.beginPath();
+      ctx.arc(mc * SQ + SQ/2, mr * SQ + SQ/2, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Check highlight
+  if (gameState.turn && !gameState.gameOver) {
+    // Find king of current turn
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (board[r][c].type === KING && board[r][c].color === gameState.turn) {
+          // Simple check detection on client: look at status bar
+          // We'll handle this via status updates
+        }
+      }
+    }
+  }
+
+  // Pieces
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (p.type === EMPTY) continue;
+
+      const dr = flipped ? 7 - r : r;
+      const dc = flipped ? 7 - c : c;
+
+      ctx.save();
+
+      // Check if our own piece is cloaked (dim it)
+      const cloakData = gameState.cloaked;
+      if (cloakData && cloakData[p.color] && cloakData[p.color].visible &&
+          cloakData[p.color].r === r && cloakData[p.color].c === c) {
+        ctx.globalAlpha = 0.35;
+      }
+
+      const sym = PIECE_SYMBOLS[p.color][p.type];
+      ctx.font = p.type >= DRAGON ? '38px serif' : '48px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (p.color === WHITE) {
+        ctx.shadowColor = 'rgba(240,200,100,0.4)';
+        ctx.shadowBlur = 8;
+      } else {
+        ctx.shadowColor = 'rgba(140,80,240,0.4)';
+        ctx.shadowBlur = 8;
+      }
+
+      ctx.fillStyle = p.color === WHITE ? '#f0e8d0' : '#c0a0f0';
+      ctx.fillText(sym, dc * SQ + SQ/2, dr * SQ + SQ/2 + 2);
+      ctx.restore();
+    }
+  }
+
+  // Coordinate labels
+  ctx.font = '10px Inter';
+  ctx.fillStyle = '#444';
+  for (let i = 0; i < 8; i++) {
+    const file = flipped ? 'hgfedcba'[i] : 'abcdefgh'[i];
+    const rank = flipped ? (i + 1) : (8 - i);
+    ctx.fillText(file, i * SQ + SQ - 12, 640 - 4);
+    ctx.fillText(rank, 4, i * SQ + 14);
+  }
+}
+
+// ============ UI ============
+function setStatus(msg, cls = '') {
+  const bar = document.getElementById('status-bar');
+  bar.textContent = msg;
+  bar.className = cls ? cls : '';
+}
+
+function updateUI() {
+  if (!gameState) return;
+
+  const turnText = gameState.turn === WHITE ? 'White' : 'Black';
+  const isMyTurn = gameState.turn === myColor;
+  document.getElementById('turn-display').textContent = isMyTurn ? `${turnText} (You)` : turnText;
+  document.getElementById('turn-display').className = gameState.turn === WHITE ? 'value turn-white' : 'value turn-black';
+  document.getElementById('move-count').textContent = gameState.moveCount;
+
+  // Energy
+  for (const color of [WHITE, BLACK]) {
+    const id = color === WHITE ? 'energy-w' : 'energy-b';
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:0.7rem;color:#555;';
+    label.textContent = color === WHITE ? 'W' : 'B';
+    el.appendChild(label);
+    for (let i = 0; i < 3; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip' + (i < gameState.energy[color] ? (color === WHITE ? ' active-w' : ' active-b') : '');
+      el.appendChild(pip);
+    }
+  }
+
+  // Log
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = gameState.log.slice().reverse().map(l => `<div>${l}</div>`).join('');
+
+  // Status
+  if (gameState.gameOver) {
+    if (gameState.winner) {
+      const winText = gameState.winner === myColor ? 'You win!' : 'You lose!';
+      const colorText = gameState.winner === WHITE ? 'White' : 'Black';
+      setStatus(`🏆 Checkmate! ${colorText} wins! ${myColor ? winText : ''}`, 'win');
+    } else {
+      setStatus('Stalemate! Draw.', '');
+    }
+  } else if (gameState.promotionPending) {
+    if (gameState.promotionPending.color === myColor) {
+      setStatus('Choose a piece for promotion!');
+    } else {
+      setStatus('Opponent is choosing promotion…');
+    }
+  } else if (isMyTurn) {
+    setStatus('Your turn. Select a piece.');
+  } else {
+    setStatus(`Waiting for ${turnText} to move…`);
+  }
+}
+
+// ============ INIT ============
+// Handle responsive canvas
+function resizeCanvas() {
+  const maxWidth = Math.min(640, window.innerWidth - 40);
+  canvas.style.width = maxWidth + 'px';
+  canvas.style.height = maxWidth + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Auto-join from URL
+connect();
+
+// Handle enter key in join input
+document.getElementById('join-code').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') joinRoom();
+});
+</script>
+</body>
+</html>
