@@ -1,5 +1,7 @@
 # Chess 2 Online
 
+Deployed on Railway.com
+
 Real-time multiplayer Chess 2 — with Dragons, Shadows, Energy, Duels, and more.
 
 ## Local Development
