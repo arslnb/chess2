@@ -1065,36 +1065,31 @@ const PIECE_NAMES = ['','Pawn','Knight','Bishop','Rook','Queen','King','Dragon',
 const PIECE_LETTERS = ['','','N','B','R','Q','K','D','S'];
 const PIECE_VALUES_SIMPLE = { [PAWN]:1, [KNIGHT]:3, [BISHOP]:3, [ROOK]:5, [QUEEN]:9, [KING]:0, [DRAGON]:7, [SHADOW]:4 };
 
-// ============ PIECE IMAGES (Wikimedia cburnett SVG) ============
-const WIKI_BASE = 'https://upload.wikimedia.org/wikipedia/commons';
+// ============ PIECE IMAGES (Custom AI-generated PNG) ============
 const PIECE_URLS = {
   [WHITE]: {
-    [KING]: `${WIKI_BASE}/4/42/Chess_klt45.svg`,
-    [QUEEN]: `${WIKI_BASE}/1/15/Chess_qlt45.svg`,
-    [ROOK]: `${WIKI_BASE}/7/72/Chess_rlt45.svg`,
-    [BISHOP]: `${WIKI_BASE}/b/b1/Chess_blt45.svg`,
-    [KNIGHT]: `${WIKI_BASE}/7/70/Chess_nlt45.svg`,
-    [PAWN]: `${WIKI_BASE}/4/45/Chess_plt45.svg`,
+    [KING]: 'pieces/wK.png',
+    [QUEEN]: 'pieces/wQ.png',
+    [ROOK]: 'pieces/wR.png',
+    [BISHOP]: 'pieces/wB.png',
+    [KNIGHT]: 'pieces/wN.png',
+    [PAWN]: 'pieces/wP.png',
+    [DRAGON]: 'pieces/wD.png',
+    [SHADOW]: 'pieces/wS.png',
   },
   [BLACK]: {
-    [KING]: `${WIKI_BASE}/f/f0/Chess_kdt45.svg`,
-    [QUEEN]: `${WIKI_BASE}/4/47/Chess_qdt45.svg`,
-    [ROOK]: `${WIKI_BASE}/f/ff/Chess_rdt45.svg`,
-    [BISHOP]: `${WIKI_BASE}/9/98/Chess_bdt45.svg`,
-    [KNIGHT]: `${WIKI_BASE}/e/ef/Chess_ndt45.svg`,
-    [PAWN]: `${WIKI_BASE}/c/c7/Chess_pdt45.svg`,
+    [KING]: 'pieces/bK.png',
+    [QUEEN]: 'pieces/bQ.png',
+    [ROOK]: 'pieces/bR.png',
+    [BISHOP]: 'pieces/bB.png',
+    [KNIGHT]: 'pieces/bN.png',
+    [PAWN]: 'pieces/bP.png',
+    [DRAGON]: 'pieces/bD.png',
+    [SHADOW]: 'pieces/bS.png',
   }
 };
 
-// Dragon SVG — winged flame creature, clearly NOT a king
-// Distinctive: has wings, flame breath, reptilian body
-const DRAGON_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><defs><linearGradient id="fw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff6622"/><stop offset="100%" stop-color="#ffcc00"/></linearGradient></defs><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11 C 19,11 16.5,13 15.5,16 L 14.5,19 C 13,21.5 13,25 15.5,27.5 L 17,29 L 15,34 L 19,34 L 20.5,30 L 22.5,30.5 L 24.5,30 L 26,34 L 30,34 L 28,29 C 30.5,27 32,24 32,21 L 31,17 C 30,14 27.5,11 22.5,11 z"/><path d="M 14,17 L 9,11 L 7,16 L 12,19" fill="#fff" stroke="#000" stroke-width="1.3"/><path d="M 31,17 L 36,11 L 38,16 L 33,19" fill="#fff" stroke="#000" stroke-width="1.3"/><path d="M 10,12 L 7,8" stroke="#000" stroke-width="1" fill="none"/><path d="M 35,12 L 38,8" stroke="#000" stroke-width="1" fill="none"/><circle cx="18.5" cy="19" r="1.5" fill="#000" stroke="none"/><circle cx="26.5" cy="19" r="1.5" fill="#000" stroke="none"/><path d="M 19,24 L 22.5,22 L 26,24" fill="url(#fw)" stroke="#c00" stroke-width="1"/><path d="M 20,25 L 22.5,23 L 25,25" fill="url(#fw)" stroke="none"/><path d="M 21,26 L 22.5,24.5 L 24,26" fill="#ff6622" stroke="none"/></g></svg>`;
-const DRAGON_SVG_BLACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><defs><linearGradient id="fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff6622"/><stop offset="100%" stop-color="#ffcc00"/></linearGradient></defs><g fill="#333" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11 C 19,11 16.5,13 15.5,16 L 14.5,19 C 13,21.5 13,25 15.5,27.5 L 17,29 L 15,34 L 19,34 L 20.5,30 L 22.5,30.5 L 24.5,30 L 26,34 L 30,34 L 28,29 C 30.5,27 32,24 32,21 L 31,17 C 30,14 27.5,11 22.5,11 z"/><path d="M 14,17 L 9,11 L 7,16 L 12,19" fill="#333" stroke="#fff" stroke-width="1.3"/><path d="M 31,17 L 36,11 L 38,16 L 33,19" fill="#333" stroke="#fff" stroke-width="1.3"/><path d="M 10,12 L 7,8" stroke="#fff" stroke-width="1" fill="none"/><path d="M 35,12 L 38,8" stroke="#fff" stroke-width="1" fill="none"/><circle cx="18.5" cy="19" r="1.5" fill="#fff" stroke="none"/><circle cx="26.5" cy="19" r="1.5" fill="#fff" stroke="none"/><path d="M 19,24 L 22.5,22 L 26,24" fill="url(#fb)" stroke="#f44" stroke-width="1"/><path d="M 20,25 L 22.5,23 L 25,25" fill="url(#fb)" stroke="none"/><path d="M 21,26 L 22.5,24.5 L 24,26" fill="#ff6622" stroke="none"/></g></svg>`;
-
-// Shadow SVG — crouching ninja with visible shuriken star
-// Distinctly different from King: crouched pose, star weapon, no crown
-const SHADOW_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="22.5" cy="12" r="5" fill="#fff"/><path d="M 17,16 L 15,22 L 13,34 L 18,34 L 19,26 L 22.5,28 L 26,26 L 27,34 L 32,34 L 30,22 L 28,16 Z"/><line x1="17.5" y1="12" x2="15" y2="10" stroke="#000" stroke-width="1.5"/><line x1="27.5" y1="12" x2="30" y2="10" stroke="#000" stroke-width="1.5"/><path d="M 17,17 L 28,17" stroke="#000" stroke-width="2.5" fill="none"/><ellipse cx="20" cy="11.5" rx="1.2" ry="0.8" fill="#000" stroke="none"/><ellipse cx="25" cy="11.5" rx="1.2" ry="0.8" fill="#000" stroke="none"/><path d="M 35,18 L 37,16 L 36,19 L 38,19 L 35,20 L 37,22 L 35,20.5 L 33,22 L 35,20 L 32,19 L 34,19 Z" fill="#888" stroke="#000" stroke-width="0.6"/></g></svg>`;
-const SHADOW_SVG_BLACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#333" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="22.5" cy="12" r="5" fill="#333"/><path d="M 17,16 L 15,22 L 13,34 L 18,34 L 19,26 L 22.5,28 L 26,26 L 27,34 L 32,34 L 30,22 L 28,16 Z"/><line x1="17.5" y1="12" x2="15" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="27.5" y1="12" x2="30" y2="10" stroke="#fff" stroke-width="1.5"/><path d="M 17,17 L 28,17" stroke="#fff" stroke-width="2.5" fill="none"/><ellipse cx="20" cy="11.5" rx="1.2" ry="0.8" fill="#fff" stroke="none"/><ellipse cx="25" cy="11.5" rx="1.2" ry="0.8" fill="#fff" stroke="none"/><path d="M 35,18 L 37,16 L 36,19 L 38,19 L 35,20 L 37,22 L 35,20.5 L 33,22 L 35,20 L 32,19 L 34,19 Z" fill="#aaa" stroke="#fff" stroke-width="0.6"/></g></svg>`;
+// Dragon and Shadow now use custom PNG images (same as other pieces)
 
 // Pre-load images
 const pieceImages = {};
@@ -1108,7 +1103,7 @@ function loadPieceImages(callback) {
   }
   for (const color of [WHITE, BLACK]) {
     pieceImages[color] = {};
-    for (const type of [KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN]) {
+    for (const type of [KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN, DRAGON, SHADOW]) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = onLoad;
@@ -1116,15 +1111,6 @@ function loadPieceImages(callback) {
       img.src = PIECE_URLS[color][type];
       pieceImages[color][type] = img;
     }
-    const dImg = new Image();
-    dImg.onload = onLoad;
-    dImg.src = 'data:image/svg+xml;base64,' + btoa(color === WHITE ? DRAGON_SVG_WHITE : DRAGON_SVG_BLACK);
-    pieceImages[color][DRAGON] = dImg;
-
-    const sImg = new Image();
-    sImg.onload = onLoad;
-    sImg.src = 'data:image/svg+xml;base64,' + btoa(color === WHITE ? SHADOW_SVG_WHITE : SHADOW_SVG_BLACK);
-    pieceImages[color][SHADOW] = sImg;
   }
 }
 
