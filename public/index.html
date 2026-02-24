@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Chess 2 — Online</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♚</text></svg>">
 <style>
@@ -13,8 +13,6 @@
     --board-dark: #739552;
     --board-light-hl: #f6f669;
     --board-dark-hl: #bbcc44;
-    --board-light-sel: #f6f669;
-    --board-dark-sel: #bbcc44;
     --move-dot: rgba(0,0,0,0.12);
     --capture-ring: rgba(0,0,0,0.12);
     --bg-main: #312e2b;
@@ -31,6 +29,8 @@
     --energy-purple: #a060f0;
     --border: #3d3a37;
     --check-red: rgba(255,0,0,0.45);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -40,7 +40,13 @@
     color: var(--text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
   }
 
   /* ===== LOBBY ===== */
@@ -50,34 +56,35 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    gap: 28px;
-    padding: 40px 20px;
+    min-height: 100dvh;
+    gap: 24px;
+    padding: 32px 16px;
   }
 
   .lobby-logo {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
   .lobby-logo .icon {
-    width: 56px; height: 56px;
+    width: 52px; height: 52px;
     background: var(--accent);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px;
+    font-size: 28px;
   }
   .lobby-logo h1 {
-    font-size: 2rem;
+    font-size: 1.8rem;
     font-weight: 800;
     color: #fff;
     letter-spacing: -0.5px;
   }
   .lobby-logo h1 span {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 400;
     color: var(--text-secondary);
     letter-spacing: 2px;
@@ -86,27 +93,22 @@
 
   .lobby-subtitle {
     color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-top: -12px;
+    font-size: 0.85rem;
+    margin-top: -8px;
+    text-align: center;
   }
 
   .lobby-card {
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 28px 32px;
+    padding: 24px 28px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    min-width: 340px;
-  }
-  .lobby-card h2 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    gap: 14px;
+    width: 100%;
+    max-width: 360px;
   }
 
   .lobby-btn {
@@ -121,8 +123,10 @@
     font-weight: 700;
     width: 100%;
     transition: all 0.15s;
+    min-height: 48px;
   }
   .lobby-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .lobby-btn:active { transform: scale(0.98); }
 
   .lobby-btn.secondary {
     background: var(--bg-sidebar);
@@ -173,6 +177,7 @@
     flex: 1;
     letter-spacing: 4px;
     text-transform: uppercase;
+    min-height: 48px;
   }
   .lobby-input::placeholder { letter-spacing: 1px; text-transform: none; color: var(--text-muted); font-family: 'Inter', sans-serif; font-size: 0.85rem; }
   .lobby-input:focus { outline: none; border-color: var(--accent); }
@@ -189,6 +194,7 @@
     font-weight: 600;
     transition: all 0.15s;
     white-space: nowrap;
+    min-height: 48px;
   }
   .lobby-btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -200,11 +206,12 @@
     text-align: center;
     display: none;
     width: 100%;
+    max-width: 360px;
   }
   #room-link .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
   #room-link .code {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 700;
     letter-spacing: 8px;
     color: var(--accent);
@@ -220,6 +227,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 0.75rem;
     transition: all 0.15s;
+    min-height: 36px;
   }
   #room-link .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -236,9 +244,10 @@
   #game-area {
     display: none;
     justify-content: center;
-    gap: 16px;
-    padding: 16px;
+    gap: 12px;
+    padding: 8px;
     min-height: 100vh;
+    min-height: 100dvh;
     align-items: flex-start;
   }
 
@@ -247,17 +256,18 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    max-width: 100%;
   }
 
   /* Player bars */
   .player-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
+    gap: 10px;
+    padding: 6px 10px;
     background: var(--bg-panel);
     border-radius: 8px;
-    min-height: 48px;
+    min-height: 44px;
   }
   .player-bar.active {
     background: var(--bg-card);
@@ -265,13 +275,13 @@
   }
 
   .player-avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     flex-shrink: 0;
   }
@@ -280,7 +290,7 @@
 
   .player-info { flex: 1; min-width: 0; }
   .player-name {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: #e0e0e0;
     white-space: nowrap;
@@ -291,12 +301,12 @@
     display: flex;
     align-items: center;
     gap: 1px;
-    min-height: 20px;
+    min-height: 18px;
     flex-wrap: wrap;
   }
-  .captured-pieces img { width: 18px; height: 18px; opacity: 0.85; }
+  .captured-pieces img { width: 16px; height: 16px; opacity: 0.85; }
   .material-diff {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 600;
     color: var(--text-muted);
     margin-left: 4px;
@@ -305,12 +315,12 @@
   .player-energy {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     flex-shrink: 0;
   }
   .energy-pip {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     background: var(--bg-sidebar);
     border: 1px solid var(--border);
@@ -318,7 +328,7 @@
   }
   .energy-pip.filled-w { background: var(--energy-gold); border-color: var(--energy-gold); box-shadow: 0 0 6px var(--energy-gold); }
   .energy-pip.filled-b { background: var(--energy-purple); border-color: var(--energy-purple); box-shadow: 0 0 6px var(--energy-purple); }
-  .energy-label { font-size: 0.65rem; color: var(--text-muted); margin-right: 2px; }
+  .energy-label { font-size: 0.6rem; color: var(--text-muted); margin-right: 2px; }
 
   /* Board */
   #board-wrap {
@@ -329,19 +339,15 @@
     border-radius: 4px;
     cursor: pointer;
     touch-action: none;
-  }
-
-  /* Coordinates overlay */
-  .coord-labels {
-    position: absolute;
-    pointer-events: none;
+    width: 100%;
+    height: auto;
   }
 
   /* Sidebar */
   #sidebar {
     display: flex;
     flex-direction: column;
-    width: 260px;
+    width: 240px;
     gap: 8px;
   }
 
@@ -353,8 +359,8 @@
   }
 
   .sidebar-header {
-    padding: 10px 14px;
-    font-size: 0.75rem;
+    padding: 8px 12px;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -365,7 +371,7 @@
 
   /* Move list */
   #move-list {
-    max-height: 340px;
+    max-height: 300px;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
@@ -378,31 +384,28 @@
     display: flex;
     align-items: center;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     border-bottom: 1px solid rgba(255,255,255,0.03);
   }
-  .move-row:hover { background: rgba(255,255,255,0.03); }
   .move-num {
-    width: 36px;
+    width: 32px;
     text-align: center;
     color: var(--text-muted);
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     flex-shrink: 0;
-    padding: 6px 0;
+    padding: 5px 0;
   }
   .move-white, .move-black {
     flex: 1;
-    padding: 6px 8px;
-    cursor: default;
+    padding: 5px 6px;
     color: var(--text-primary);
   }
-  .move-white:hover, .move-black:hover { background: rgba(255,255,255,0.05); }
   .move-white.last-move, .move-black.last-move { background: rgba(129,182,76,0.15); color: #fff; }
 
   /* Status bar */
   #status-bar {
-    padding: 10px 14px;
-    font-size: 0.8rem;
+    padding: 8px 12px;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     text-align: center;
     background: var(--bg-sidebar);
@@ -415,41 +418,41 @@
   .action-bar {
     display: flex;
     gap: 6px;
-    padding: 10px 14px;
+    padding: 8px 10px;
   }
   .action-btn {
     flex: 1;
     background: var(--bg-sidebar);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 8px 12px;
+    padding: 8px 10px;
     border-radius: 6px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     transition: all 0.15s;
     text-align: center;
+    min-height: 40px;
   }
   .action-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .action-btn.active { border-color: var(--energy-gold); color: var(--energy-gold); background: rgba(240,192,64,0.08); }
   .action-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .action-btn.primary:hover { background: var(--accent-hover); }
 
   /* Chess2 info card */
   .chess2-info {
-    padding: 12px 14px;
+    padding: 10px 12px;
   }
   .chess2-info .mechanic {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    padding: 5px 0;
-    font-size: 0.72rem;
+    padding: 4px 0;
+    font-size: 0.68rem;
     color: var(--text-muted);
     line-height: 1.4;
   }
-  .chess2-info .mechanic .icon { font-size: 0.9rem; flex-shrink: 0; width: 18px; text-align: center; }
+  .chess2-info .mechanic .icon { font-size: 0.85rem; flex-shrink: 0; width: 16px; text-align: center; }
   .chess2-info .mechanic b { color: var(--text-secondary); }
 
   /* Promotion overlay */
@@ -469,14 +472,16 @@
     background: var(--bg-panel);
     border: 2px solid var(--accent);
     border-radius: 12px;
-    padding: 16px;
+    padding: 14px;
     display: flex;
     gap: 8px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .promo-piece {
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     border-radius: 8px;
     border: 2px solid var(--border);
     background: var(--bg-sidebar);
@@ -485,7 +490,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
+    padding: 6px;
   }
   .promo-piece:hover { border-color: var(--accent); background: var(--bg-card); transform: scale(1.08); }
   .promo-piece img { width: 100%; height: 100%; }
@@ -493,11 +498,11 @@
   /* Connection status */
   #connection-status {
     position: fixed;
-    top: 10px;
-    right: 10px;
-    padding: 4px 12px;
+    top: 8px;
+    right: 8px;
+    padding: 3px 10px;
     border-radius: 20px;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 600;
     z-index: 50;
     text-transform: uppercase;
@@ -509,17 +514,397 @@
   /* Thinking indicator */
   #thinking-indicator {
     display: none;
-    padding: 8px 14px;
-    font-size: 0.8rem;
+    padding: 6px 10px;
+    font-size: 0.75rem;
     color: var(--energy-purple);
     text-align: center;
     animation: pulse 1.2s infinite;
   }
 
-  /* Responsive */
-  @media (max-width: 900px) {
-    #game-area { flex-direction: column; align-items: center; }
-    #sidebar { width: 100%; max-width: 500px; }
+  /* ===== TUTORIAL TOOLTIP ===== */
+  #tutorial-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+    padding: 16px;
+  }
+  #tutorial-overlay.active { display: flex; }
+  .tutorial-card {
+    background: var(--bg-panel);
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    text-align: center;
+    animation: tutorialPop 0.3s ease-out;
+  }
+  @keyframes tutorialPop {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .tutorial-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+  }
+  .tutorial-card h3 {
+    color: #fff;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .tutorial-card p {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .tutorial-card .moves-hint {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    margin-bottom: 16px;
+    padding: 10px;
+    background: var(--bg-sidebar);
+    border-radius: 8px;
+    text-align: left;
+  }
+  .tutorial-card .moves-hint b { color: var(--text-secondary); }
+  .tutorial-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.15s;
+    min-height: 44px;
+  }
+  .tutorial-btn:hover { background: var(--accent-hover); }
+
+  /* ===== DUEL OVERLAY ===== */
+  #duel-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 150;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+    padding: 16px;
+  }
+  #duel-overlay.active { display: flex; }
+  .duel-card {
+    background: var(--bg-panel);
+    border: 2px solid var(--danger);
+    border-radius: 14px;
+    padding: 28px 32px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 0 60px rgba(224,80,80,0.3);
+    text-align: center;
+    animation: duelShake 0.5s ease-out;
+  }
+  @keyframes duelShake {
+    0% { transform: scale(0.8) rotate(-2deg); opacity: 0; }
+    40% { transform: scale(1.05) rotate(1deg); }
+    70% { transform: scale(0.98) rotate(-0.5deg); }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  .duel-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--danger);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  .duel-pieces {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .duel-piece-img {
+    width: 64px;
+    height: 64px;
+    opacity: 0.5;
+    filter: grayscale(0.5);
+  }
+  .duel-vs {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--danger);
+  }
+  .duel-subtitle {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    margin-bottom: 12px;
+  }
+  .duel-combatant {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .duel-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .duel-result-text {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+  }
+  .duel-first-time-note {
+    color: var(--energy-gold);
+    font-size: 0.72rem;
+    font-style: italic;
+    margin-top: 4px;
+    padding: 8px 12px;
+    background: rgba(240,192,64,0.08);
+    border-radius: 6px;
+  }
+  .attacker-shake {
+    animation: shakeLeft 0.6s ease-out;
+  }
+  .defender-shake {
+    animation: shakeRight 0.6s ease-out;
+  }
+  @keyframes shakeLeft {
+    0% { transform: translateX(-30px) rotate(-10deg); opacity: 0; }
+    30% { transform: translateX(5px) rotate(2deg); opacity: 1; }
+    50% { transform: translateX(-3px); }
+    100% { transform: translateX(0) rotate(0); opacity: 0.5; }
+  }
+  @keyframes shakeRight {
+    0% { transform: translateX(30px) rotate(10deg); opacity: 0; }
+    30% { transform: translateX(-5px) rotate(-2deg); opacity: 1; }
+    50% { transform: translateX(3px); }
+    100% { transform: translateX(0) rotate(0); opacity: 0.5; }
+  }
+
+  /* ===== LEARN OVERLAY ===== */
+  #learn-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 250;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+    overflow-y: auto;
+    padding: 20px;
+  }
+  #learn-overlay.active { display: flex; }
+  .learn-card {
+    background: var(--bg-panel);
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    padding: 24px 28px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .learn-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .learn-close:hover { color: var(--text-primary); }
+  .learn-section {
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .learn-section:last-of-type { border-bottom: none; }
+  .learn-section h3 {
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+  .learn-section p, .learn-section li {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+  .learn-section ul {
+    padding-left: 18px;
+    margin-top: 6px;
+  }
+  .learn-section li { margin-bottom: 3px; }
+  .learn-section b { color: var(--text-primary); }
+  .learn-piece-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .learn-piece-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .learn-piece-icon img { width: 40px; height: 40px; }
+  .learn-piece-row h3 { margin-bottom: 4px; }
+  .learn-piece-row p { margin: 0; }
+
+  /* ===== MOBILE RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    body {
+      overflow-y: auto;
+    }
+    #lobby {
+      padding: 20px 12px;
+      gap: 16px;
+    }
+    .lobby-logo h1 { font-size: 1.5rem; }
+    .lobby-card { padding: 16px 18px; }
+    .lobby-btn { padding: 12px 0; font-size: 0.9rem; }
+
+    #game-area {
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 2px;
+      min-height: auto;
+    }
+    .board-column {
+      width: 100%;
+      max-width: 100vw;
+      gap: 2px;
+    }
+    #sidebar {
+      width: 100%;
+      max-width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 0 2px 8px;
+    }
+    #sidebar .sidebar-card {
+      flex: 1;
+      min-width: 0;
+    }
+    #sidebar .sidebar-card:first-child {
+      flex: 2;
+      min-width: 55%;
+    }
+    #sidebar .sidebar-card:last-child {
+      /* Hide mechanics card on mobile — save space */
+      display: none;
+    }
+    .player-bar {
+      padding: 4px 8px;
+      min-height: 38px;
+      border-radius: 6px;
+      gap: 8px;
+    }
+    .player-avatar { width: 28px; height: 28px; font-size: 13px; border-radius: 5px; }
+    .player-name { font-size: 0.73rem; }
+    .captured-pieces img { width: 14px; height: 14px; }
+    .energy-pip { width: 8px; height: 8px; }
+    .energy-label { font-size: 0.55rem; }
+    #move-list { max-height: 100px; }
+    .move-row { font-size: 0.68rem; }
+    .move-num { width: 28px; font-size: 0.6rem; }
+    .sidebar-header { padding: 6px 10px; font-size: 0.65rem; }
+    #status-bar { padding: 6px 10px; font-size: 0.7rem; }
+    #thinking-indicator { font-size: 0.7rem; padding: 4px 8px; }
+    .action-bar { padding: 6px 8px; gap: 4px; }
+    .action-btn { padding: 7px 8px; font-size: 0.68rem; border-radius: 5px; min-height: 36px; }
+    #connection-status { top: 4px; right: 4px; font-size: 0.5rem; padding: 2px 6px; }
+
+    /* Overlays: fit mobile */
+    .tutorial-card { padding: 18px 16px; max-width: 92vw; }
+    .tutorial-icon { font-size: 2.4rem; margin-bottom: 8px; }
+    .tutorial-card h3 { font-size: 1rem; }
+    .tutorial-card p { font-size: 0.78rem; }
+    .tutorial-card .moves-hint { font-size: 0.68rem; padding: 8px; }
+    .tutorial-btn { padding: 9px 28px; font-size: 0.8rem; }
+
+    .duel-card { padding: 20px 18px; max-width: 85vw; }
+    .duel-title { font-size: 1.4rem; }
+    .duel-piece-img { width: 48px; height: 48px; }
+    .duel-vs { font-size: 1.2rem; }
+    .duel-result-text { font-size: 0.78rem; }
+
+    #promo-box { padding: 10px; gap: 6px; }
+    .promo-piece { width: 48px; height: 48px; }
+
+    .learn-card { padding: 18px 16px; max-width: 95vw; }
+    .learn-piece-icon { width: 40px; height: 40px; }
+    .learn-piece-icon img { width: 32px; height: 32px; }
+  }
+
+  @media (max-width: 380px) {
+    .lobby-logo h1 { font-size: 1.3rem; }
+    .lobby-card { padding: 12px 14px; max-width: 100%; }
+    .lobby-btn { padding: 10px 0; font-size: 0.85rem; }
+    .lobby-input { padding: 10px 12px; font-size: 0.95rem; }
+    .promo-piece { width: 42px; height: 42px; }
+    .player-bar { padding: 3px 6px; min-height: 34px; }
+    .player-avatar { width: 24px; height: 24px; font-size: 11px; }
+    .player-name { font-size: 0.68rem; }
+  }
+
+  /* Landscape mobile: keep board centered, sidebar collapses to right */
+  @media (max-height: 500px) and (orientation: landscape) {
+    #game-area {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 4px;
+    }
+    .board-column { max-width: 60vw; }
+    #sidebar {
+      width: 35vw;
+      max-height: 100vh;
+      overflow-y: auto;
+      flex-direction: column;
+      flex-wrap: nowrap;
+    }
+    #sidebar .sidebar-card { min-width: auto; }
+    #sidebar .sidebar-card:first-child { min-width: auto; flex: initial; }
+  }
+
+  /* Very tall phones (board + sidebar stacked nicely) */
+  @media (max-width: 768px) and (min-height: 700px) {
+    #move-list { max-height: 150px; }
   }
 </style>
 </head>
@@ -544,6 +929,8 @@
       <input class="lobby-input" id="join-code" placeholder="Room code" maxlength="6">
       <button class="lobby-btn-sm" onclick="joinRoom()">Join</button>
     </div>
+    <div class="lobby-divider">new to chess 2?</div>
+    <button class="lobby-btn secondary" onclick="showLearnOverlay()"><span class="btn-icon">📖</span> Learn Chess 2</button>
   </div>
 
   <div id="room-link">
@@ -591,6 +978,7 @@
     <div class="sidebar-card">
       <div class="action-bar">
         <button class="action-btn" id="decree-btn" onclick="sendDecree()">⚡ Decree</button>
+        <button class="action-btn" id="learn-btn" onclick="showLearnOverlay()">📖 Rules</button>
         <button class="action-btn primary" id="newgame-btn" onclick="sendNewGame()" style="display:none;">New Game</button>
       </div>
     </div>
@@ -612,6 +1000,61 @@
 <!-- Promotion overlay -->
 <div id="promo-overlay">
   <div id="promo-box"></div>
+</div>
+
+<!-- Tutorial overlay -->
+<div id="tutorial-overlay">
+  <div class="tutorial-card" id="tutorial-card"></div>
+</div>
+
+<!-- Duel overlay -->
+<div id="duel-overlay">
+  <div class="duel-card" id="duel-card"></div>
+</div>
+
+<!-- Learn overlay -->
+<div id="learn-overlay">
+  <div class="learn-card">
+    <div class="learn-close" onclick="closeLearnOverlay()">✕</div>
+    <h2 style="color:#fff;font-size:1.2rem;margin-bottom:16px;">📖 Chess 2 — What's New?</h2>
+    <div class="learn-section">
+      <div class="learn-piece-row">
+        <div class="learn-piece-icon" id="learn-dragon-icon"></div>
+        <div>
+          <h3>🐉 Dragon</h3>
+          <p>Replaces one Rook. Moves like a Queen but <b>max 3 squares</b>. Can <b>leap over 1 piece</b>. Can castle with the King.</p>
+        </div>
+      </div>
+      <div class="learn-piece-row">
+        <div class="learn-piece-icon" id="learn-shadow-icon"></div>
+        <div>
+          <h3>🥷 Shadow</h3>
+          <p>Replaces one Knight. Moves like a Knight <b>plus 1 square diagonally</b>. <b>Right-click</b> to cloak for 2 turns (costs 1⚡).</p>
+        </div>
+      </div>
+    </div>
+    <div class="learn-section">
+      <h3>⚡ Energy System</h3>
+      <p>Both players gain <b>+1 energy per turn</b> (max 3). Energy powers abilities:</p>
+      <ul>
+        <li><b>Cloak Shadow</b> — 1⚡ (invisible for 2 turns)</li>
+        <li><b>King's Decree</b> — 3⚡ (push all adjacent enemies outward)</li>
+      </ul>
+    </div>
+    <div class="learn-section">
+      <h3>💥 Duels</h3>
+      <p>When any piece captures another, there's a <b>15% chance both pieces are destroyed</b>. Kings are immune. High risk, high reward!</p>
+    </div>
+    <div class="learn-section">
+      <h3>🏰 Castling 2.0</h3>
+      <p>You can castle with the Rook (queenside) or the Dragon (kingside), just like normal castling rules.</p>
+    </div>
+    <div class="learn-section">
+      <h3>♟ Board Setup</h3>
+      <p>Back rank: <b>Rook · Shadow · Bishop · Queen · King · Bishop · Knight · Dragon</b><br>Both sides have the same piece order. Each side has exactly <b>one King</b>.</p>
+    </div>
+    <button class="tutorial-btn" onclick="closeLearnOverlay()" style="margin-top:8px;">Got it — Let's Play!</button>
+  </div>
 </div>
 
 <script>
@@ -643,25 +1086,26 @@ const PIECE_URLS = {
   }
 };
 
-// Dragon SVG (inline — based on cburnett chancellor/dragon style)
-const DRAGON_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11 C 19,11 16,13 14,16 L 10,18 C 8,19 7,21 8,23 L 9,25 C 9,27 11,29 13,29 L 15,29 C 16,31 18,33 21,34 L 24,34 C 27,33 29,31 30,29 L 32,29 C 34,29 36,27 36,25 L 37,23 C 38,21 37,19 35,18 L 31,16 C 29,13 26,11 22.5,11 z"/><path d="M 14,16 L 11,14 L 10,10 L 14,13" fill="#fff" stroke="#000"/><path d="M 31,16 L 34,14 L 35,10 L 31,13" fill="#fff" stroke="#000"/><circle cx="16" cy="20" r="1.5" fill="#000" stroke="none"/><circle cx="29" cy="20" r="1.5" fill="#000" stroke="none"/><path d="M 19,27 L 22.5,30 L 26,27" fill="none" stroke="#000" stroke-width="1"/></g></svg>`;
-const DRAGON_SVG_BLACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#333" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11 C 19,11 16,13 14,16 L 10,18 C 8,19 7,21 8,23 L 9,25 C 9,27 11,29 13,29 L 15,29 C 16,31 18,33 21,34 L 24,34 C 27,33 29,31 30,29 L 32,29 C 34,29 36,27 36,25 L 37,23 C 38,21 37,19 35,18 L 31,16 C 29,13 26,11 22.5,11 z" stroke="#fff"/><path d="M 14,16 L 11,14 L 10,10 L 14,13" fill="#333" stroke="#fff"/><path d="M 31,16 L 34,14 L 35,10 L 31,13" fill="#333" stroke="#fff"/><circle cx="16" cy="20" r="1.5" fill="#fff" stroke="none"/><circle cx="29" cy="20" r="1.5" fill="#fff" stroke="none"/><path d="M 19,27 L 22.5,30 L 26,27" fill="none" stroke="#fff" stroke-width="1"/></g></svg>`;
+// Dragon SVG — winged flame creature, clearly NOT a king
+// Distinctive: has wings, flame breath, reptilian body
+const DRAGON_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><defs><linearGradient id="fw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff6622"/><stop offset="100%" stop-color="#ffcc00"/></linearGradient></defs><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11 C 19,11 16.5,13 15.5,16 L 14.5,19 C 13,21.5 13,25 15.5,27.5 L 17,29 L 15,34 L 19,34 L 20.5,30 L 22.5,30.5 L 24.5,30 L 26,34 L 30,34 L 28,29 C 30.5,27 32,24 32,21 L 31,17 C 30,14 27.5,11 22.5,11 z"/><path d="M 14,17 L 9,11 L 7,16 L 12,19" fill="#fff" stroke="#000" stroke-width="1.3"/><path d="M 31,17 L 36,11 L 38,16 L 33,19" fill="#fff" stroke="#000" stroke-width="1.3"/><path d="M 10,12 L 7,8" stroke="#000" stroke-width="1" fill="none"/><path d="M 35,12 L 38,8" stroke="#000" stroke-width="1" fill="none"/><circle cx="18.5" cy="19" r="1.5" fill="#000" stroke="none"/><circle cx="26.5" cy="19" r="1.5" fill="#000" stroke="none"/><path d="M 19,24 L 22.5,22 L 26,24" fill="url(#fw)" stroke="#c00" stroke-width="1"/><path d="M 20,25 L 22.5,23 L 25,25" fill="url(#fw)" stroke="none"/><path d="M 21,26 L 22.5,24.5 L 24,26" fill="#ff6622" stroke="none"/></g></svg>`;
+const DRAGON_SVG_BLACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><defs><linearGradient id="fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff6622"/><stop offset="100%" stop-color="#ffcc00"/></linearGradient></defs><g fill="#333" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,11 C 19,11 16.5,13 15.5,16 L 14.5,19 C 13,21.5 13,25 15.5,27.5 L 17,29 L 15,34 L 19,34 L 20.5,30 L 22.5,30.5 L 24.5,30 L 26,34 L 30,34 L 28,29 C 30.5,27 32,24 32,21 L 31,17 C 30,14 27.5,11 22.5,11 z"/><path d="M 14,17 L 9,11 L 7,16 L 12,19" fill="#333" stroke="#fff" stroke-width="1.3"/><path d="M 31,17 L 36,11 L 38,16 L 33,19" fill="#333" stroke="#fff" stroke-width="1.3"/><path d="M 10,12 L 7,8" stroke="#fff" stroke-width="1" fill="none"/><path d="M 35,12 L 38,8" stroke="#fff" stroke-width="1" fill="none"/><circle cx="18.5" cy="19" r="1.5" fill="#fff" stroke="none"/><circle cx="26.5" cy="19" r="1.5" fill="#fff" stroke="none"/><path d="M 19,24 L 22.5,22 L 26,24" fill="url(#fb)" stroke="#f44" stroke-width="1"/><path d="M 20,25 L 22.5,23 L 25,25" fill="url(#fb)" stroke="none"/><path d="M 21,26 L 22.5,24.5 L 24,26" fill="#ff6622" stroke="none"/></g></svg>`;
 
-// Shadow SVG (ninja/assassin style)
-const SHADOW_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,9 C 18,9 15,12 15,15 L 15,17 C 13,18 11,20 11,23 C 11,26 13,28 15,29 L 14,34 L 17,34 L 18,30 L 22.5,31 L 27,30 L 28,34 L 31,34 L 30,29 C 32,28 34,26 34,23 C 34,20 32,18 30,17 L 30,15 C 30,12 27,9 22.5,9 z"/><path d="M 15,19 L 30,19" stroke="#000" stroke-width="2"/><line x1="18" y1="21" x2="20" y2="22" stroke="#000" stroke-width="1"/><line x1="27" y1="21" x2="25" y2="22" stroke="#000" stroke-width="1"/></g></svg>`;
-const SHADOW_SVG_BLACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#333" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M 22.5,9 C 18,9 15,12 15,15 L 15,17 C 13,18 11,20 11,23 C 11,26 13,28 15,29 L 14,34 L 17,34 L 18,30 L 22.5,31 L 27,30 L 28,34 L 31,34 L 30,29 C 32,28 34,26 34,23 C 34,20 32,18 30,17 L 30,15 C 30,12 27,9 22.5,9 z"/><path d="M 15,19 L 30,19" stroke="#fff" stroke-width="2"/><line x1="18" y1="21" x2="20" y2="22" stroke="#fff" stroke-width="1"/><line x1="27" y1="21" x2="25" y2="22" stroke="#fff" stroke-width="1"/></g></svg>`;
+// Shadow SVG — crouching ninja with visible shuriken star
+// Distinctly different from King: crouched pose, star weapon, no crown
+const SHADOW_SVG_WHITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="22.5" cy="12" r="5" fill="#fff"/><path d="M 17,16 L 15,22 L 13,34 L 18,34 L 19,26 L 22.5,28 L 26,26 L 27,34 L 32,34 L 30,22 L 28,16 Z"/><line x1="17.5" y1="12" x2="15" y2="10" stroke="#000" stroke-width="1.5"/><line x1="27.5" y1="12" x2="30" y2="10" stroke="#000" stroke-width="1.5"/><path d="M 17,17 L 28,17" stroke="#000" stroke-width="2.5" fill="none"/><ellipse cx="20" cy="11.5" rx="1.2" ry="0.8" fill="#000" stroke="none"/><ellipse cx="25" cy="11.5" rx="1.2" ry="0.8" fill="#000" stroke="none"/><path d="M 35,18 L 37,16 L 36,19 L 38,19 L 35,20 L 37,22 L 35,20.5 L 33,22 L 35,20 L 32,19 L 34,19 Z" fill="#888" stroke="#000" stroke-width="0.6"/></g></svg>`;
+const SHADOW_SVG_BLACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="#333" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="22.5" cy="12" r="5" fill="#333"/><path d="M 17,16 L 15,22 L 13,34 L 18,34 L 19,26 L 22.5,28 L 26,26 L 27,34 L 32,34 L 30,22 L 28,16 Z"/><line x1="17.5" y1="12" x2="15" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="27.5" y1="12" x2="30" y2="10" stroke="#fff" stroke-width="1.5"/><path d="M 17,17 L 28,17" stroke="#fff" stroke-width="2.5" fill="none"/><ellipse cx="20" cy="11.5" rx="1.2" ry="0.8" fill="#fff" stroke="none"/><ellipse cx="25" cy="11.5" rx="1.2" ry="0.8" fill="#fff" stroke="none"/><path d="M 35,18 L 37,16 L 36,19 L 38,19 L 35,20 L 37,22 L 35,20.5 L 33,22 L 35,20 L 32,19 L 34,19 Z" fill="#aaa" stroke="#fff" stroke-width="0.6"/></g></svg>`;
 
 // Pre-load images
 const pieceImages = {};
 let imagesLoaded = 0;
-const totalImages = 16; // 6 standard * 2 colors + 2 dragon + 2 shadow
+const totalImages = 16;
 
 function loadPieceImages(callback) {
   function onLoad() {
     imagesLoaded++;
     if (imagesLoaded >= totalImages && callback) callback();
   }
-
   for (const color of [WHITE, BLACK]) {
     pieceImages[color] = {};
     for (const type of [KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN]) {
@@ -672,18 +1116,14 @@ function loadPieceImages(callback) {
       img.src = PIECE_URLS[color][type];
       pieceImages[color][type] = img;
     }
-    // Dragon
     const dImg = new Image();
-    const dSvg = color === WHITE ? DRAGON_SVG_WHITE : DRAGON_SVG_BLACK;
     dImg.onload = onLoad;
-    dImg.src = 'data:image/svg+xml;base64,' + btoa(dSvg);
+    dImg.src = 'data:image/svg+xml;base64,' + btoa(color === WHITE ? DRAGON_SVG_WHITE : DRAGON_SVG_BLACK);
     pieceImages[color][DRAGON] = dImg;
 
-    // Shadow
     const sImg = new Image();
-    const sSvg = color === WHITE ? SHADOW_SVG_WHITE : SHADOW_SVG_BLACK;
     sImg.onload = onLoad;
-    sImg.src = 'data:image/svg+xml;base64,' + btoa(sSvg);
+    sImg.src = 'data:image/svg+xml;base64,' + btoa(color === WHITE ? SHADOW_SVG_WHITE : SHADOW_SVG_BLACK);
     pieceImages[color][SHADOW] = sImg;
   }
 }
@@ -725,6 +1165,13 @@ function playSound(type) {
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
       osc.start(audioCtx.currentTime);
       osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'duel') {
+      osc.type = 'sawtooth';
+      osc.frequency.value = 200;
+      gain.gain.value = 0.15;
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.4);
     }
   } catch(e) {}
 }
@@ -738,15 +1185,150 @@ let selected = null;
 let validMoves = [];
 let flipped = false;
 let lastMove = null;
-let moveHistory = []; // [{num, white, black}]
-let prevBoard = null; // for tracking captured pieces
+let moveHistory = [];
 let isBotGame = false;
 
-// Initial piece counts for captured tracking
+// Initial piece counts (back rank: R S B Q K B N D)
 const INITIAL_PIECES = {
   [WHITE]: { [PAWN]:8, [KNIGHT]:1, [BISHOP]:2, [ROOK]:1, [QUEEN]:1, [KING]:1, [DRAGON]:1, [SHADOW]:1 },
   [BLACK]: { [PAWN]:8, [KNIGHT]:1, [BISHOP]:2, [ROOK]:1, [QUEEN]:1, [KING]:1, [DRAGON]:1, [SHADOW]:1 }
 };
+
+// ============ TUTORIAL STATE ============
+const tutorialSeen = {
+  dragon: localStorage.getItem('chess2_tut_dragon') === '1',
+  shadow: localStorage.getItem('chess2_tut_shadow') === '1',
+  duel: localStorage.getItem('chess2_tut_duel') === '1',
+  cloak: localStorage.getItem('chess2_tut_cloak') === '1',
+  decree: localStorage.getItem('chess2_tut_decree') === '1',
+};
+
+function markTutorialSeen(key) {
+  tutorialSeen[key] = true;
+  localStorage.setItem('chess2_tut_' + key, '1');
+}
+
+function showTutorial(type) {
+  if (tutorialSeen[type]) return false;
+  
+  const tutorials = {
+    dragon: {
+      icon: '🐉',
+      title: 'Meet the Dragon!',
+      desc: 'A powerful new piece unique to Chess 2! The Dragon replaces one of your rooks.',
+      moves: '• Moves like a Queen, but only up to <b>3 squares</b><br>• Can <b>leap over 1 piece</b> (friend or foe)<br>• Can castle with the King just like a Rook<br>• Worth ~7 points (between Rook and Queen)',
+    },
+    shadow: {
+      icon: '🥷',
+      title: 'Meet the Shadow!',
+      desc: 'A stealthy assassin that replaces one of your knights. Look for the piece with the shuriken star!',
+      moves: '• Moves like a Knight (L-shape)<br>• <b>Plus</b> 1 square diagonally<br>• <b>Right-click</b> to cloak (costs 1⚡ energy)<br>• While cloaked, invisible to opponent for 2 turns<br>• Worth ~4 points',
+    },
+    duel: {
+      icon: '⚔️',
+      title: 'Duel — Mutual Destruction!',
+      desc: 'When a piece captures another, there\'s a 15% chance both pieces are destroyed in combat!',
+      moves: 'The attacker and defender both fall — a deadly gamble on every capture. <b>Kings are immune</b> to duels. This adds strategic risk to every exchange.',
+    },
+    decree: {
+      icon: '👑',
+      title: 'King\'s Decree!',
+      desc: 'The King commands all adjacent enemies to be pushed back one square!',
+      moves: 'Costs <b>3 energy</b>. Pushes all enemy pieces adjacent to your King one square outward. Pieces pushed off the board are removed. Uses your entire turn.',
+    },
+  };
+
+  const t = tutorials[type];
+  if (!t) return false;
+
+  const card = document.getElementById('tutorial-card');
+  card.innerHTML = `
+    <div class="tutorial-icon">${t.icon}</div>
+    <h3>${t.title}</h3>
+    <p>${t.desc}</p>
+    <div class="moves-hint">${t.moves}</div>
+    <button class="tutorial-btn" onclick="closeTutorial('${type}')">Got it!</button>
+  `;
+  document.getElementById('tutorial-overlay').classList.add('active');
+  markTutorialSeen(type);
+  return true;
+}
+
+function closeTutorial(type) {
+  document.getElementById('tutorial-overlay').classList.remove('active');
+}
+
+// ============ LEARN OVERLAY ============
+function showLearnOverlay() {
+  // Populate piece icons in learn overlay
+  setTimeout(() => {
+    const dragonIcon = document.getElementById('learn-dragon-icon');
+    const shadowIcon = document.getElementById('learn-shadow-icon');
+    if (dragonIcon && pieceImages[WHITE] && pieceImages[WHITE][DRAGON]) {
+      dragonIcon.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = pieceImages[WHITE][DRAGON].src;
+      dragonIcon.appendChild(img);
+    }
+    if (shadowIcon && pieceImages[WHITE] && pieceImages[WHITE][SHADOW]) {
+      shadowIcon.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = pieceImages[WHITE][SHADOW].src;
+      shadowIcon.appendChild(img);
+    }
+  }, 50);
+  document.getElementById('learn-overlay').classList.add('active');
+}
+
+function closeLearnOverlay() {
+  document.getElementById('learn-overlay').classList.remove('active');
+}
+
+// ============ DUEL ANIMATION ============
+function showDuelAnimation(duelData) {
+  if (!duelData) return;
+  
+  playSound('duel');
+  
+  // Determine attacker/defender colors based on who just moved
+  const attackerColor = gameState.turn === WHITE ? BLACK : WHITE; // current turn already switched
+  const defenderColor = gameState.turn;
+  
+  const attackerImg = pieceImages[attackerColor]?.[duelData.attacker]?.src || '';
+  const defenderImg = pieceImages[defenderColor]?.[duelData.defender]?.src || '';
+  
+  const isFirstDuel = !tutorialSeen.duel;
+  
+  const card = document.getElementById('duel-card');
+  card.innerHTML = `
+    <div class="duel-title">⚔️ DUEL! ⚔️</div>
+    <div class="duel-subtitle">A 15% chance of mutual destruction — and it happened!</div>
+    <div class="duel-pieces">
+      <div class="duel-combatant">
+        <img class="duel-piece-img attacker-shake" src="${attackerImg}" alt="${PIECE_NAMES[duelData.attacker]}">
+        <div class="duel-label">${PIECE_NAMES[duelData.attacker]}</div>
+      </div>
+      <span class="duel-vs">💥</span>
+      <div class="duel-combatant">
+        <img class="duel-piece-img defender-shake" src="${defenderImg}" alt="${PIECE_NAMES[duelData.defender]}">
+        <div class="duel-label">${PIECE_NAMES[duelData.defender]}</div>
+      </div>
+    </div>
+    <div class="duel-result-text">Both pieces were destroyed in combat!</div>
+    ${isFirstDuel ? '<div class="duel-first-time-note">💡 Duels happen 15% of the time when any piece captures. Kings are immune. Plan your captures wisely!</div>' : ''}
+  `;
+  
+  const overlay = document.getElementById('duel-overlay');
+  overlay.classList.add('active');
+  
+  // Auto-dismiss after delay (longer for first duel)
+  const delay = isFirstDuel ? 4000 : 2500;
+  setTimeout(() => {
+    overlay.classList.remove('active');
+  }, delay);
+  
+  if (isFirstDuel) markTutorialSeen('duel');
+}
 
 // ============ WEBSOCKET ============
 function connect() {
@@ -822,15 +1404,28 @@ function handleMessage(msg) {
         flipped = myColor === BLACK;
       }
 
-      // Track if this is a bot game
       if (gameState.isBot) isBotGame = true;
 
-      // Detect last move for highlighting
-      if (gameState.lastMove) {
-        lastMove = gameState.lastMove;
+      // Track last move from server info
+      if (gameState.lastMoveInfo) {
+        lastMove = gameState.lastMoveInfo;
       }
 
-      // Build move history from log
+      // Check for duel animation
+      if (gameState.lastDuel && prevState) {
+        showDuelAnimation(gameState.lastDuel);
+      }
+
+      // Check for first-time piece usage tutorials
+      if (gameState.lastMoveInfo && prevState) {
+        const pt = gameState.lastMoveInfo.pieceType;
+        if (pt === DRAGON && !tutorialSeen.dragon) {
+          setTimeout(() => showTutorial('dragon'), 300);
+        } else if (pt === SHADOW && !tutorialSeen.shadow) {
+          setTimeout(() => showTutorial('shadow'), 300);
+        }
+      }
+
       buildMoveHistory();
 
       selected = null;
@@ -841,9 +1436,10 @@ function handleMessage(msg) {
       // Sound
       if (prevState) {
         if (gameState.gameOver) playSound('check');
+        else if (gameState.lastDuel) { /* duel sound handled in showDuelAnimation */ }
         else if (gameState.log && gameState.log.length > (prevState.log ? prevState.log.length : 0)) {
           const lastLog = gameState.log[gameState.log.length - 1] || '';
-          if (lastLog.includes('x') || lastLog.includes('Duel') || lastLog.includes('captures')) playSound('capture');
+          if (lastLog.includes('x') || lastLog.includes('captures')) playSound('capture');
           else playSound('move');
         }
       }
@@ -921,6 +1517,10 @@ function sendDecree() {
     setStatus('Need 3 energy for King\'s Decree!');
     return;
   }
+  // Show decree tutorial if first time
+  if (!tutorialSeen.decree) {
+    showTutorial('decree');
+  }
   ws.send(JSON.stringify({ type: 'decree' }));
 }
 
@@ -951,8 +1551,8 @@ function showPromotionUI(color) {
 }
 
 // ============ BOARD INTERACTION (Drag & Drop + Click) ============
-let dragging = null;  // { r, c, piece, startX, startY, curX, curY }
-let dragThreshold = 5; // px before drag starts
+let dragging = null;
+let dragThreshold = 5;
 let dragStarted = false;
 let mouseDownPos = null;
 
@@ -976,7 +1576,7 @@ function canvasPixelCoords(e) {
 }
 
 canvas.addEventListener('mousedown', (e) => {
-  if (e.button !== 0) return; // left click only
+  if (e.button !== 0) return;
   if (!gameState || !myColor || gameState.gameOver) return;
   if (gameState.turn !== myColor) return;
   if (gameState.promotionPending) return;
@@ -990,9 +1590,7 @@ canvas.addEventListener('mousedown', (e) => {
 
   const board = gameState.board;
   if (board[r][c].color === myColor) {
-    // Prepare drag
     dragging = { r, c, piece: board[r][c], curX: px.x, curY: px.y };
-    // Also select this piece (for legal moves)
     selected = { r, c };
     validMoves = [];
     ws.send(JSON.stringify({ type: 'get_legal_moves', r, c }));
@@ -1004,7 +1602,6 @@ canvas.addEventListener('mousemove', (e) => {
   if (!dragging || !mouseDownPos) return;
   const px = canvasPixelCoords(e);
 
-  // Check if drag threshold exceeded
   if (!dragStarted) {
     const dx = px.x - mouseDownPos.x;
     const dy = px.y - mouseDownPos.y;
@@ -1027,18 +1624,15 @@ canvas.addEventListener('mouseup', (e) => {
   const { r, c } = boardCoords(e);
 
   if (dragging && dragStarted) {
-    // ---- DRAG DROP ----
     if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
-      // If dropping on a valid move target
       const move = validMoves.find(m => m.r === r && m.c === c);
       if (move) {
         ws.send(JSON.stringify({ type: 'move', fromR: dragging.r, fromC: dragging.c, toR: r, toC: c }));
         selected = null;
         validMoves = [];
       } else if (r === dragging.r && c === dragging.c) {
-        // Dropped back on same square — keep selected
+        // keep selected
       } else {
-        // Invalid drop — check if clicking another own piece to reselect
         const board = gameState.board;
         if (board[r][c].color === myColor) {
           selected = { r, c };
@@ -1058,7 +1652,6 @@ canvas.addEventListener('mouseup', (e) => {
     return;
   }
 
-  // ---- CLICK (no drag happened) ----
   dragging = null;
   dragStarted = false;
   mouseDownPos = null;
@@ -1092,7 +1685,6 @@ canvas.addEventListener('mouseup', (e) => {
   }
 });
 
-// Cancel drag when mouse leaves canvas
 canvas.addEventListener('mouseleave', () => {
   if (dragging && dragStarted) {
     dragging = null;
@@ -1113,11 +1705,14 @@ canvas.addEventListener('contextmenu', (e) => {
 
   const board = gameState.board;
   if (board[r][c].type === SHADOW && board[r][c].color === myColor) {
+    if (!tutorialSeen.cloak) {
+      markTutorialSeen('cloak');
+    }
     ws.send(JSON.stringify({ type: 'cloak', r, c }));
   }
 });
 
-// ============ TOUCH SUPPORT (mobile drag & drop) ============
+// ============ TOUCH SUPPORT ============
 let touchDragging = null;
 let touchDragStarted = false;
 let touchStartPos = null;
@@ -1172,14 +1767,28 @@ canvas.addEventListener('touchmove', (e) => {
 
   touchDragging.curX = x;
   touchDragging.curY = y;
-  dragging = touchDragging; // reuse the drag rendering path
+  dragging = touchDragging;
   dragStarted = true;
   drawBoard();
 }, { passive: false });
 
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
-  if (!touchDragging) return;
+  if (!touchDragging) {
+    // Tap without owning piece: try click-to-move
+    if (touchStartPos && selected && validMoves.length) {
+      const { r, c } = touchStartPos;
+      const move = validMoves.find(m => m.r === r && m.c === c);
+      if (move) {
+        ws.send(JSON.stringify({ type: 'move', fromR: selected.r, fromC: selected.c, toR: r, toC: c }));
+        selected = null;
+        validMoves = [];
+        drawBoard();
+      }
+    }
+    touchStartPos = null;
+    return;
+  }
 
   if (touchDragStarted && e.changedTouches.length > 0) {
     const touch = e.changedTouches[0];
@@ -1193,13 +1802,20 @@ canvas.addEventListener('touchend', (e) => {
       }
     }
   } else {
-    // Tap — handled as click
+    // Tap (no drag): click-to-select / click-to-move
     if (touchStartPos) {
       const { r, c } = touchStartPos;
       if (selected && validMoves.length) {
         const move = validMoves.find(m => m.r === r && m.c === c);
         if (move) {
           ws.send(JSON.stringify({ type: 'move', fromR: selected.r, fromC: selected.c, toR: r, toC: c }));
+          selected = null;
+          validMoves = [];
+        } else if (gameState.board[r][c].color === myColor) {
+          selected = { r, c };
+          validMoves = [];
+          ws.send(JSON.stringify({ type: 'get_legal_moves', r, c }));
+        } else {
           selected = null;
           validMoves = [];
         }
@@ -1215,6 +1831,37 @@ canvas.addEventListener('touchend', (e) => {
   drawBoard();
 }, { passive: false });
 
+// Long-press for cloak on mobile
+let longPressTimer = null;
+canvas.addEventListener('touchstart', (e) => {
+  const touch = e.touches[0];
+  const { r, c } = touchCoords(touch);
+  if (r < 0 || r > 7 || c < 0 || c > 7) return;
+  if (!gameState || !myColor || gameState.gameOver || gameState.turn !== myColor) return;
+  
+  const board = gameState.board;
+  if (board[r][c].type === SHADOW && board[r][c].color === myColor) {
+    longPressTimer = setTimeout(() => {
+      if (!tutorialSeen.cloak) markTutorialSeen('cloak');
+      ws.send(JSON.stringify({ type: 'cloak', r, c }));
+      // Cancel any drag
+      touchDragging = null;
+      touchDragStarted = false;
+      touchStartPos = null;
+      dragging = null;
+      dragStarted = false;
+    }, 500);
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', () => {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+}, { passive: true });
+
 // ============ DRAWING ============
 function drawBoard() {
   if (!gameState) return;
@@ -1227,7 +1874,6 @@ function drawBoard() {
       const dc = flipped ? 7 - c : c;
       const isLight = (dr + dc) % 2 === 0;
 
-      // Last move highlight
       let isLastMove = false;
       if (lastMove) {
         if ((dr === lastMove.fromR && dc === lastMove.fromC) || (dr === lastMove.toR && dc === lastMove.toC)) {
@@ -1235,14 +1881,10 @@ function drawBoard() {
         }
       }
 
-      // Selected highlight
       let isSelected = false;
       if (selected && selected.r === dr && selected.c === dc) isSelected = true;
 
-      if (isSelected) {
-        ctx.fillStyle = isLight ? 'var(--board-light-sel)' : 'var(--board-dark-sel)';
-        ctx.fillStyle = isLight ? '#f6f669' : '#bbcc44';
-      } else if (isLastMove) {
+      if (isSelected || isLastMove) {
         ctx.fillStyle = isLight ? '#f6f669' : '#bbcc44';
       } else {
         ctx.fillStyle = isLight ? '#ebecd0' : '#739552';
@@ -1252,12 +1894,11 @@ function drawBoard() {
     }
   }
 
-  // Check highlight (red glow on king square)
+  // Check highlight
   if (gameState.turn && !gameState.gameOver) {
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         if (board[r][c].type === KING && board[r][c].color === gameState.turn) {
-          // Check if status indicates check
           const statusEl = document.getElementById('status-bar');
           if (statusEl && statusEl.classList.contains('check')) {
             const dr = flipped ? 7 - r : r;
@@ -1273,9 +1914,8 @@ function drawBoard() {
     }
   }
 
-  // Hover highlight when dragging over a valid square
+  // Drag hover highlight
   if (dragging && dragStarted) {
-    // Figure out which square the cursor is over
     let hoverC = Math.floor(dragging.curX / SQ);
     let hoverR = Math.floor(dragging.curY / SQ);
     if (flipped) { hoverR = 7 - hoverR; hoverC = 7 - hoverC; }
@@ -1293,14 +1933,12 @@ function drawBoard() {
     const mr = flipped ? 7 - m.r : m.r;
     const mc = flipped ? 7 - m.c : m.c;
     if (board[m.r][m.c].type !== EMPTY || m.enPassant) {
-      // Capture: corner triangles or ring
       ctx.strokeStyle = 'rgba(0,0,0,0.15)';
       ctx.lineWidth = SQ * 0.09;
       ctx.beginPath();
       ctx.arc(mc * SQ + SQ/2, mr * SQ + SQ/2, SQ/2 - 4, 0, Math.PI * 2);
       ctx.stroke();
     } else {
-      // Move dot
       ctx.fillStyle = 'rgba(0,0,0,0.14)';
       ctx.beginPath();
       ctx.arc(mc * SQ + SQ/2, mr * SQ + SQ/2, SQ * 0.17, 0, Math.PI * 2);
@@ -1314,22 +1952,18 @@ function drawBoard() {
       const p = board[r][c];
       if (p.type === EMPTY) continue;
 
-      // Skip the dragged piece in its original position (draw ghost instead)
       const isDragSource = dragging && dragStarted && dragging.r === r && dragging.c === c;
-
       const dr = flipped ? 7 - r : r;
       const dc = flipped ? 7 - c : c;
 
       ctx.save();
 
-      // Cloaked shadow
       const cloakData = gameState.cloaked;
       if (cloakData && cloakData[p.color] && cloakData[p.color].visible &&
           cloakData[p.color].r === r && cloakData[p.color].c === c) {
         ctx.globalAlpha = 0.3;
       }
 
-      // Ghost piece at source square while dragging
       if (isDragSource) {
         ctx.globalAlpha = 0.25;
       }
@@ -1339,30 +1973,34 @@ function drawBoard() {
         const padding = 4;
         ctx.drawImage(img, dc * SQ + padding, dr * SQ + padding, SQ - padding*2, SQ - padding*2);
       } else {
-        // Fallback: text
         const PIECE_SYMBOLS = {
-          [WHITE]: { [PAWN]:'♙', [KNIGHT]:'♘', [BISHOP]:'♗', [ROOK]:'♖', [QUEEN]:'♕', [KING]:'♔', [DRAGON]:'🐉', [SHADOW]:'🥷' },
-          [BLACK]: { [PAWN]:'♟', [KNIGHT]:'♞', [BISHOP]:'♝', [ROOK]:'♜', [QUEEN]:'♛', [KING]:'♚', [DRAGON]:'🐲', [SHADOW]:'👤' }
+          [WHITE]: { [PAWN]:'♙', [KNIGHT]:'♘', [BISHOP]:'♗', [ROOK]:'♖', [QUEEN]:'♕', [KING]:'♔', [DRAGON]:'D', [SHADOW]:'S' },
+          [BLACK]: { [PAWN]:'♟', [KNIGHT]:'♞', [BISHOP]:'♝', [ROOK]:'♜', [QUEEN]:'♛', [KING]:'♚', [DRAGON]:'D', [SHADOW]:'S' }
         };
-        ctx.font = '44px serif';
+        ctx.font = 'bold 40px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = p.color === WHITE ? '#fff' : '#333';
-        ctx.fillText(PIECE_SYMBOLS[p.color][p.type] || '?', dc * SQ + SQ/2, dr * SQ + SQ/2 + 2);
+        ctx.strokeStyle = p.color === WHITE ? '#000' : '#fff';
+        ctx.lineWidth = 1;
+        const sym = PIECE_SYMBOLS[p.color][p.type] || '?';
+        ctx.fillText(sym, dc * SQ + SQ/2, dr * SQ + SQ/2 + 2);
+        if (p.type === DRAGON || p.type === SHADOW) {
+          ctx.strokeText(sym, dc * SQ + SQ/2, dr * SQ + SQ/2 + 2);
+        }
       }
 
       ctx.restore();
     }
   }
 
-  // Draw the dragged piece at cursor position (on top of everything)
+  // Dragged piece
   if (dragging && dragStarted && dragging.piece) {
     ctx.save();
     const img = pieceImages[dragging.piece.color] && pieceImages[dragging.piece.color][dragging.piece.type];
-    const size = SQ * 1.1; // slightly larger while dragging
+    const size = SQ * 1.1;
     const halfSize = size / 2;
 
-    // Drop shadow under dragged piece
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 12;
     ctx.shadowOffsetX = 3;
@@ -1371,15 +2009,11 @@ function drawBoard() {
     if (img && img.complete && img.naturalWidth > 0) {
       ctx.drawImage(img, dragging.curX - halfSize, dragging.curY - halfSize, size, size);
     } else {
-      const PIECE_SYMBOLS = {
-        [WHITE]: { [PAWN]:'♙', [KNIGHT]:'♘', [BISHOP]:'♗', [ROOK]:'♖', [QUEEN]:'♕', [KING]:'♔', [DRAGON]:'🐉', [SHADOW]:'🥷' },
-        [BLACK]: { [PAWN]:'♟', [KNIGHT]:'♞', [BISHOP]:'♝', [ROOK]:'♜', [QUEEN]:'♛', [KING]:'♚', [DRAGON]:'🐲', [SHADOW]:'👤' }
-      };
-      ctx.font = '48px serif';
+      ctx.font = 'bold 48px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = dragging.piece.color === WHITE ? '#fff' : '#333';
-      ctx.fillText(PIECE_SYMBOLS[dragging.piece.color][dragging.piece.type] || '?', dragging.curX, dragging.curY);
+      ctx.fillText('?', dragging.curX, dragging.curY);
     }
     ctx.restore();
   }
@@ -1392,13 +2026,11 @@ function drawBoard() {
     const isLight = flipped ? (7 - i + 7) % 2 === 0 : (i + 7) % 2 === 0;
     const isLightR = flipped ? (7 - i) % 2 === 0 : i % 2 === 0;
 
-    // File labels (bottom)
     ctx.fillStyle = isLight ? '#739552' : '#ebecd0';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillText(file, i * SQ + SQ - 6, 640 - 3);
 
-    // Rank labels (left)
     ctx.fillStyle = isLightR ? '#739552' : '#ebecd0';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
@@ -1418,13 +2050,11 @@ function updatePlayerBars() {
   const topColor = topIsBlack ? BLACK : WHITE;
   const botColor = topIsBlack ? WHITE : BLACK;
 
-  // Avatars
   document.getElementById('avatar-top').className = `player-avatar ${topColor === BLACK ? 'black-av' : 'white-av'}`;
   document.getElementById('avatar-top').textContent = topColor === BLACK ? 'B' : 'W';
   document.getElementById('avatar-bottom').className = `player-avatar ${botColor === BLACK ? 'black-av' : 'white-av'}`;
   document.getElementById('avatar-bottom').textContent = botColor === BLACK ? 'B' : 'W';
 
-  // Names
   const opponentLabel = isBotGame ? '🤖 Computer' : null;
 
   let topName, botName;
@@ -1444,18 +2074,15 @@ function updatePlayerBars() {
 
   if (!gameState) return;
 
-  // Active turn indicator
   const topActive = gameState.turn === topColor && !gameState.gameOver;
   const botActive = gameState.turn === botColor && !gameState.gameOver;
   document.getElementById('player-top').className = `player-bar${topActive ? ' active' : ''}`;
   document.getElementById('player-bottom').className = `player-bar${botActive ? ' active' : ''}`;
 
-  // Energy
   updateEnergyPips('energy-top', topColor);
   updateEnergyPips('energy-bottom', botColor);
 
-  // Captured pieces
-  updateCapturedPieces('captured-top', botColor, topColor); // top player captured from bottom's color
+  updateCapturedPieces('captured-top', botColor, topColor);
   updateCapturedPieces('captured-bottom', topColor, botColor);
 }
 
@@ -1475,7 +2102,6 @@ function updateCapturedPieces(elId, capturedFromColor, capturedByColor) {
   if (!el || !gameState) return;
   el.innerHTML = '';
 
-  // Count current pieces on board
   const current = {};
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
@@ -1486,7 +2112,6 @@ function updateCapturedPieces(elId, capturedFromColor, capturedByColor) {
     }
   }
 
-  // Diff from initial
   const initial = INITIAL_PIECES[capturedFromColor];
   const captured = [];
   let materialDiff = 0;
@@ -1502,12 +2127,10 @@ function updateCapturedPieces(elId, capturedFromColor, capturedByColor) {
 
   for (const type of captured) {
     const img = document.createElement('img');
-    img.src = pieceImages[capturedFromColor] && pieceImages[capturedFromColor][type] ? pieceImages[capturedFromColor][type].src : '';
+    img.src = pieceImages[capturedFromColor]?.[type]?.src || '';
     el.appendChild(img);
   }
 
-  // Material diff
-  // Count other side's captured too
   const otherCurrent = {};
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
@@ -1535,7 +2158,6 @@ function updateCapturedPieces(elId, capturedFromColor, capturedByColor) {
 
 function buildMoveHistory() {
   if (!gameState || !gameState.log) return;
-  // Simple: parse log entries into move pairs
   moveHistory = [];
   const logEntries = gameState.log.filter(l => l.includes('→') || l.includes('castles') || l.includes('Decree') || l.includes('promotes') || l.includes('Duel'));
   let moveNum = 1;
@@ -1591,7 +2213,6 @@ function renderMoveList() {
     el.appendChild(row);
   }
 
-  // Scroll to bottom
   el.scrollTop = el.scrollHeight;
 }
 
@@ -1601,7 +2222,6 @@ function updateAllUI() {
   updatePlayerBars();
   renderMoveList();
 
-  // Status
   const isMyTurn = gameState.turn === myColor;
   const turnText = gameState.turn === WHITE ? 'White' : 'Black';
 
@@ -1620,15 +2240,14 @@ function updateAllUI() {
       setStatus('Opponent choosing promotion…', '');
     }
   } else if (isMyTurn) {
-    // Check detection from log
-    const lastLog = gameState.log && gameState.log.length > 0 ? gameState.log[gameState.log.length - 1] : '';
+    const lastLog = gameState.log?.length > 0 ? gameState.log[gameState.log.length - 1] : '';
     if (lastLog.includes('CHECK')) {
       setStatus('You\'re in check!', 'check');
     } else {
       setStatus('Your turn', '');
     }
   } else {
-    const lastLog = gameState.log && gameState.log.length > 0 ? gameState.log[gameState.log.length - 1] : '';
+    const lastLog = gameState.log?.length > 0 ? gameState.log[gameState.log.length - 1] : '';
     if (isBotGame) {
       if (lastLog.includes('CHECK')) {
         setStatus('Computer is in check', 'check');
@@ -1647,11 +2266,24 @@ function updateAllUI() {
 
 // ============ RESPONSIVE ============
 function resizeCanvas() {
-  const maxWidth = Math.min(640, window.innerWidth - 320);
+  const isMobile = window.innerWidth <= 768;
+  const isLandscape = window.innerWidth > window.innerHeight;
+  let maxWidth;
+  if (isMobile) {
+    if (isLandscape) {
+      maxWidth = Math.min(640, Math.floor(window.innerHeight * 0.88));
+    } else {
+      // Portrait: full width minus small margin, but also account for player bars
+      maxWidth = Math.min(640, window.innerWidth - 4);
+    }
+  } else {
+    maxWidth = Math.min(640, window.innerWidth - 300);
+  }
   canvas.style.width = maxWidth + 'px';
   canvas.style.height = maxWidth + 'px';
 }
 window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 100));
 
 // ============ INIT ============
 document.getElementById('join-code').addEventListener('keydown', (e) => {
@@ -1663,6 +2295,19 @@ loadPieceImages(() => {
 });
 connect();
 resizeCanvas();
+
+// Dismiss overlays on click outside
+document.getElementById('learn-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('learn-overlay')) closeLearnOverlay();
+});
+document.getElementById('tutorial-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('tutorial-overlay')) closeTutorial();
+});
+document.getElementById('duel-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('duel-overlay')) {
+    document.getElementById('duel-overlay').classList.remove('active');
+  }
+});
 </script>
 </body>
 </html>

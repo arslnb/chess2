@@ -21,8 +21,12 @@ function inBounds(r,c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
 
 function createGame() {
   const board = Array.from({length:8}, () => Array.from({length:8}, () => ({type:EMPTY, color:0})));
-  const backRankBlack = [ROOK, SHADOW, BISHOP, DRAGON, QUEEN, KING, BISHOP, KNIGHT];
-  const backRankWhite = [ROOK, KNIGHT, BISHOP, QUEEN, KING, DRAGON, BISHOP, SHADOW];
+  // Both sides identical piece order: R S B Q K B N D
+  // Rook at col 0 (queenside castle), Dragon at col 7 (kingside dragon castle)
+  // Shadow replaces left knight, Knight stays at col 6
+  const backRank = [ROOK, SHADOW, BISHOP, QUEEN, KING, BISHOP, KNIGHT, DRAGON];
+  const backRankWhite = backRank;
+  const backRankBlack = backRank;
   for (let c = 0; c < 8; c++) {
     board[0][c] = { type: backRankBlack[c], color: BLACK };
     board[1][c] = { type: PAWN, color: BLACK };
@@ -40,8 +44,8 @@ function createGame() {
     cloaked: { [WHITE]: null, [BLACK]: null },
     cloakTurnsLeft: { [WHITE]: 0, [BLACK]: 0 },
     castleRights: {
-      [WHITE]: { kMoved: false, lrMoved: false, rrMoved: false, ldMoved: false, rdMoved: false },
-      [BLACK]: { kMoved: false, lrMoved: false, rrMoved: false, ldMoved: false, rdMoved: false }
+      [WHITE]: { kMoved: false, lrMoved: false, ldMoved: false, rdMoved: false },
+      [BLACK]: { kMoved: false, lrMoved: false, ldMoved: false, rdMoved: false }
     },
     log: []
   };
@@ -113,16 +117,13 @@ function getRawMoves_(board, r, c, enPassant, castleRights) {
       const row = color === WHITE ? 7 : 0;
       if (!cr.kMoved && r === row) {
         const kc = c;
-        if (!cr.rrMoved && board[row][7].type === ROOK && board[row][7].color === color) {
-          if (isEmpty_(board, row,5) && isEmpty_(board, row,6)) {
-            moves.push({r:row, c:kc+2, castle:'k'});
-          }
-        }
+        // Queenside Rook castling (rook at col 0)
         if (!cr.lrMoved && board[row][0].type === ROOK && board[row][0].color === color) {
-          if (isEmpty_(board, row,1) && isEmpty_(board, row,2) && isEmpty_(board, row,3)) {
-            moves.push({r:row, c:kc-2, castle:'q'});
-          }
+          let clear = true;
+          for (let x = 1; x < kc; x++) if (!isEmpty_(board, row, x)) clear = false;
+          if (clear) moves.push({r:row, c:kc-2, castle:'q'});
         }
+        // Dragon castling (scan for dragon on back rank)
         for (let dc2 = 0; dc2 < 8; dc2++) {
           if (board[row][dc2].type === DRAGON && board[row][dc2].color === color) {
             if (dc2 > kc) {
@@ -220,10 +221,12 @@ function getLegalMoves_(board, r, c, enPassant, castleRights) {
     if (move.castle) {
       const row = move.r;
       if (move.castle === 'k') {
-        board[row][5] = board[row][7];
+        // Rook at col 7 -> move.c - 1
+        board[row][move.c - 1] = board[row][7];
         board[row][7] = {type:EMPTY,color:0};
       } else if (move.castle === 'q') {
-        board[row][3] = board[row][0];
+        // Rook at col 0 -> move.c + 1
+        board[row][move.c + 1] = board[row][0];
         board[row][0] = {type:EMPTY,color:0};
       } else if (move.castle === 'dk') {
         board[row][move.c - 1] = board[row][move.dragonCol];
@@ -242,9 +245,9 @@ function getLegalMoves_(board, r, c, enPassant, castleRights) {
     if (move.castle) {
       const row = move.r;
       if (move.castle === 'k') {
-        board[row][7] = board[row][5]; board[row][5] = {type:EMPTY,color:0};
+        board[row][7] = board[row][move.c - 1]; board[row][move.c - 1] = {type:EMPTY,color:0};
       } else if (move.castle === 'q') {
-        board[row][0] = board[row][3]; board[row][3] = {type:EMPTY,color:0};
+        board[row][0] = board[row][move.c + 1]; board[row][move.c + 1] = {type:EMPTY,color:0};
       } else if (move.castle === 'dk') {
         board[row][move.dragonCol] = board[row][move.c-1]; board[row][move.c-1] = {type:EMPTY,color:0};
       } else if (move.castle === 'dq') {
@@ -297,10 +300,12 @@ function executeMove(game, fromR, fromC, toR, toC, moveData) {
   if (moveData && moveData.castle) {
     const row = toR;
     if (moveData.castle === 'k') {
-      board[row][5] = board[row][7]; board[row][7] = {type:EMPTY,color:0};
+      // King moved from fromC to toC (fromC+2). Rook at col 7 goes to toC-1.
+      board[row][toC - 1] = board[row][7]; board[row][7] = {type:EMPTY,color:0};
       game.log.push(`${color===WHITE?'White':'Black'} castles kingside`);
     } else if (moveData.castle === 'q') {
-      board[row][3] = board[row][0]; board[row][0] = {type:EMPTY,color:0};
+      // King moved from fromC to toC (fromC-2). Rook at col 0 goes to toC+1.
+      board[row][toC + 1] = board[row][0]; board[row][0] = {type:EMPTY,color:0};
       game.log.push(`${color===WHITE?'White':'Black'} castles queenside`);
     } else if (moveData.castle === 'dk' || moveData.castle === 'dq') {
       const dc = moveData.dragonCol;
@@ -315,12 +320,12 @@ function executeMove(game, fromR, fromC, toR, toC, moveData) {
   if (piece.type === ROOK) {
     const row = color === WHITE ? 7 : 0;
     if (fromC === 0 && fromR === row) game.castleRights[color].lrMoved = true;
-    if (fromC === 7 && fromR === row) game.castleRights[color].rrMoved = true;
   }
   if (piece.type === DRAGON) {
     const row = color === WHITE ? 7 : 0;
     if (fromR === row) {
-      if (fromC > 4) game.castleRights[color].rdMoved = true;
+      const king = findKing_(board, color);
+      if (king && fromC > king.c) game.castleRights[color].rdMoved = true;
       else game.castleRights[color].ldMoved = true;
     }
   }
@@ -368,9 +373,9 @@ function executeMoveQuiet(game, fromR, fromC, toR, toC, moveData) {
   if (moveData && moveData.castle) {
     const row = toR;
     if (moveData.castle === 'k') {
-      board[row][5] = board[row][7]; board[row][7] = {type:EMPTY,color:0};
+      board[row][toC - 1] = board[row][7]; board[row][7] = {type:EMPTY,color:0};
     } else if (moveData.castle === 'q') {
-      board[row][3] = board[row][0]; board[row][0] = {type:EMPTY,color:0};
+      board[row][toC + 1] = board[row][0]; board[row][0] = {type:EMPTY,color:0};
     } else if (moveData.castle === 'dk' || moveData.castle === 'dq') {
       const dc = moveData.dragonCol;
       const newDC = moveData.castle === 'dk' ? toC - 1 : toC + 1;
@@ -382,12 +387,12 @@ function executeMoveQuiet(game, fromR, fromC, toR, toC, moveData) {
   if (piece.type === ROOK) {
     const row = color === WHITE ? 7 : 0;
     if (fromC === 0 && fromR === row) game.castleRights[color].lrMoved = true;
-    if (fromC === 7 && fromR === row) game.castleRights[color].rrMoved = true;
   }
   if (piece.type === DRAGON) {
     const row = color === WHITE ? 7 : 0;
     if (fromR === row) {
-      if (fromC > 4) game.castleRights[color].rdMoved = true;
+      const king = findKing_(game.board, color);
+      if (king && fromC > king.c) game.castleRights[color].rdMoved = true;
       else game.castleRights[color].ldMoved = true;
     }
   }
@@ -657,7 +662,20 @@ function triggerAIMove(room) {
   const best = findBestMove(g, aiColor);
   if (!best) return;
 
+  const movedPieceType = g.board[best.fromR][best.fromC].type;
+  const capturedPieceType = g.board[best.toR][best.toC].type;
+
   const result = executeMove(g, best.fromR, best.fromC, best.toR, best.toC, best.moveData);
+
+  room.lastMoveInfo = { fromR: best.fromR, fromC: best.fromC, toR: best.toR, toC: best.toC, pieceType: movedPieceType, capturedType: capturedPieceType };
+
+  const lastLog = g.log.length > 0 ? g.log[g.log.length - 1] : '';
+  if (lastLog.includes('DUEL') || lastLog.includes('Duel')) {
+    room.lastDuel = { r: best.toR, c: best.toC, attacker: movedPieceType, defender: capturedPieceType };
+  } else {
+    room.lastDuel = null;
+  }
+
   if (result === 'promotion') {
     // AI auto-promotes to Queen
     g.board[best.toR][best.toC] = { type: QUEEN, color: aiColor };
@@ -726,7 +744,9 @@ function getClientState(room, playerColor) {
     enPassant: g.enPassant,
     castleRights: g.castleRights,
     promotionPending: room.promotionPending,
-    isBot: room.isBot
+    isBot: room.isBot,
+    lastDuel: room.lastDuel || null,
+    lastMoveInfo: room.lastMoveInfo || null
   };
 }
 
@@ -840,7 +860,23 @@ wss.on('connection', (ws) => {
         if (!move) return;
         if (g.board[fromR][fromC].color !== myColor) return;
 
+        // Track piece type for learning helpers
+        const movedPieceType = g.board[fromR][fromC].type;
+        const capturedPieceType = g.board[toR][toC].type;
+
         const result = executeMove(g, fromR, fromC, toR, toC, move);
+
+        // Store last move info for client animations
+        myRoom.lastMoveInfo = { fromR, fromC, toR, toC, pieceType: movedPieceType, capturedType: capturedPieceType };
+
+        // Check if last log entry mentions duel
+        const lastLog = g.log.length > 0 ? g.log[g.log.length - 1] : '';
+        if (lastLog.includes('DUEL') || lastLog.includes('Duel')) {
+          myRoom.lastDuel = { r: toR, c: toC, attacker: movedPieceType, defender: capturedPieceType };
+        } else {
+          myRoom.lastDuel = null;
+        }
+
         if (result === 'promotion') {
           myRoom.promotionPending = { r: toR, c: toC, color: myColor };
           broadcastRoom(myRoom);
