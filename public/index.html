@@ -328,6 +328,7 @@
   canvas#board {
     border-radius: 4px;
     cursor: pointer;
+    touch-action: none;
   }
 
   /* Coordinates overlay */
@@ -949,7 +950,12 @@ function showPromotionUI(color) {
   document.getElementById('promo-overlay').classList.add('active');
 }
 
-// ============ BOARD INTERACTION ============
+// ============ BOARD INTERACTION (Drag & Drop + Click) ============
+let dragging = null;  // { r, c, piece, startX, startY, curX, curY }
+let dragThreshold = 5; // px before drag starts
+let dragStarted = false;
+let mouseDownPos = null;
+
 function boardCoords(e) {
   const rect = canvas.getBoundingClientRect();
   const scale = 640 / rect.width;
@@ -960,12 +966,106 @@ function boardCoords(e) {
   return { r, c };
 }
 
-canvas.addEventListener('click', (e) => {
+function canvasPixelCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scale = 640 / rect.width;
+  return {
+    x: (e.clientX - rect.left) * scale,
+    y: (e.clientY - rect.top) * scale
+  };
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return; // left click only
   if (!gameState || !myColor || gameState.gameOver) return;
   if (gameState.turn !== myColor) return;
   if (gameState.promotionPending) return;
 
   const { r, c } = boardCoords(e);
+  if (r < 0 || r > 7 || c < 0 || c > 7) return;
+
+  const px = canvasPixelCoords(e);
+  mouseDownPos = { r, c, x: px.x, y: px.y };
+  dragStarted = false;
+
+  const board = gameState.board;
+  if (board[r][c].color === myColor) {
+    // Prepare drag
+    dragging = { r, c, piece: board[r][c], curX: px.x, curY: px.y };
+    // Also select this piece (for legal moves)
+    selected = { r, c };
+    validMoves = [];
+    ws.send(JSON.stringify({ type: 'get_legal_moves', r, c }));
+    canvas.style.cursor = 'grabbing';
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!dragging || !mouseDownPos) return;
+  const px = canvasPixelCoords(e);
+
+  // Check if drag threshold exceeded
+  if (!dragStarted) {
+    const dx = px.x - mouseDownPos.x;
+    const dy = px.y - mouseDownPos.y;
+    if (Math.sqrt(dx*dx + dy*dy) > dragThreshold) {
+      dragStarted = true;
+    } else {
+      return;
+    }
+  }
+
+  dragging.curX = px.x;
+  dragging.curY = px.y;
+  drawBoard();
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (e.button !== 0) return;
+  if (!gameState || !myColor || gameState.gameOver) return;
+
+  const { r, c } = boardCoords(e);
+
+  if (dragging && dragStarted) {
+    // ---- DRAG DROP ----
+    if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
+      // If dropping on a valid move target
+      const move = validMoves.find(m => m.r === r && m.c === c);
+      if (move) {
+        ws.send(JSON.stringify({ type: 'move', fromR: dragging.r, fromC: dragging.c, toR: r, toC: c }));
+        selected = null;
+        validMoves = [];
+      } else if (r === dragging.r && c === dragging.c) {
+        // Dropped back on same square — keep selected
+      } else {
+        // Invalid drop — check if clicking another own piece to reselect
+        const board = gameState.board;
+        if (board[r][c].color === myColor) {
+          selected = { r, c };
+          validMoves = [];
+          ws.send(JSON.stringify({ type: 'get_legal_moves', r, c }));
+        } else {
+          selected = null;
+          validMoves = [];
+        }
+      }
+    }
+    dragging = null;
+    dragStarted = false;
+    mouseDownPos = null;
+    canvas.style.cursor = 'pointer';
+    drawBoard();
+    return;
+  }
+
+  // ---- CLICK (no drag happened) ----
+  dragging = null;
+  dragStarted = false;
+  mouseDownPos = null;
+  canvas.style.cursor = 'pointer';
+
+  if (gameState.turn !== myColor) return;
+  if (gameState.promotionPending) return;
   if (r < 0 || r > 7 || c < 0 || c > 7) return;
 
   if (selected && validMoves.length) {
@@ -992,6 +1092,17 @@ canvas.addEventListener('click', (e) => {
   }
 });
 
+// Cancel drag when mouse leaves canvas
+canvas.addEventListener('mouseleave', () => {
+  if (dragging && dragStarted) {
+    dragging = null;
+    dragStarted = false;
+    mouseDownPos = null;
+    canvas.style.cursor = 'pointer';
+    drawBoard();
+  }
+});
+
 canvas.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   if (!gameState || !myColor || gameState.gameOver) return;
@@ -1005,6 +1116,104 @@ canvas.addEventListener('contextmenu', (e) => {
     ws.send(JSON.stringify({ type: 'cloak', r, c }));
   }
 });
+
+// ============ TOUCH SUPPORT (mobile drag & drop) ============
+let touchDragging = null;
+let touchDragStarted = false;
+let touchStartPos = null;
+
+function touchCoords(touch) {
+  const rect = canvas.getBoundingClientRect();
+  const scale = 640 / rect.width;
+  const x = (touch.clientX - rect.left) * scale;
+  const y = (touch.clientY - rect.top) * scale;
+  let c = Math.floor(x / SQ), r = Math.floor(y / SQ);
+  if (flipped) { r = 7 - r; c = 7 - c; }
+  return { r, c, x: (touch.clientX - rect.left) * scale, y: (touch.clientY - rect.top) * scale };
+}
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (!gameState || !myColor || gameState.gameOver) return;
+  if (gameState.turn !== myColor) return;
+  if (gameState.promotionPending) return;
+
+  const touch = e.touches[0];
+  const { r, c, x, y } = touchCoords(touch);
+  if (r < 0 || r > 7 || c < 0 || c > 7) return;
+
+  touchStartPos = { r, c, x, y };
+  touchDragStarted = false;
+
+  const board = gameState.board;
+  if (board[r][c].color === myColor) {
+    touchDragging = { r, c, piece: board[r][c], curX: x, curY: y };
+    selected = { r, c };
+    validMoves = [];
+    ws.send(JSON.stringify({ type: 'get_legal_moves', r, c }));
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!touchDragging || !touchStartPos) return;
+  const touch = e.touches[0];
+  const { x, y } = touchCoords(touch);
+
+  if (!touchDragStarted) {
+    const dx = x - touchStartPos.x;
+    const dy = y - touchStartPos.y;
+    if (Math.sqrt(dx*dx + dy*dy) > dragThreshold) {
+      touchDragStarted = true;
+    } else {
+      return;
+    }
+  }
+
+  touchDragging.curX = x;
+  touchDragging.curY = y;
+  dragging = touchDragging; // reuse the drag rendering path
+  dragStarted = true;
+  drawBoard();
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  if (!touchDragging) return;
+
+  if (touchDragStarted && e.changedTouches.length > 0) {
+    const touch = e.changedTouches[0];
+    const { r, c } = touchCoords(touch);
+    if (r >= 0 && r <= 7 && c >= 0 && c <= 7) {
+      const move = validMoves.find(m => m.r === r && m.c === c);
+      if (move) {
+        ws.send(JSON.stringify({ type: 'move', fromR: touchDragging.r, fromC: touchDragging.c, toR: r, toC: c }));
+        selected = null;
+        validMoves = [];
+      }
+    }
+  } else {
+    // Tap — handled as click
+    if (touchStartPos) {
+      const { r, c } = touchStartPos;
+      if (selected && validMoves.length) {
+        const move = validMoves.find(m => m.r === r && m.c === c);
+        if (move) {
+          ws.send(JSON.stringify({ type: 'move', fromR: selected.r, fromC: selected.c, toR: r, toC: c }));
+          selected = null;
+          validMoves = [];
+        }
+      }
+    }
+  }
+
+  touchDragging = null;
+  touchDragStarted = false;
+  touchStartPos = null;
+  dragging = null;
+  dragStarted = false;
+  drawBoard();
+}, { passive: false });
 
 // ============ DRAWING ============
 function drawBoard() {
@@ -1064,6 +1273,21 @@ function drawBoard() {
     }
   }
 
+  // Hover highlight when dragging over a valid square
+  if (dragging && dragStarted) {
+    // Figure out which square the cursor is over
+    let hoverC = Math.floor(dragging.curX / SQ);
+    let hoverR = Math.floor(dragging.curY / SQ);
+    if (flipped) { hoverR = 7 - hoverR; hoverC = 7 - hoverC; }
+    const isHoverValid = validMoves.some(m => m.r === hoverR && m.c === hoverC);
+    if (isHoverValid && hoverR >= 0 && hoverR <= 7 && hoverC >= 0 && hoverC <= 7) {
+      const dhR = flipped ? 7 - hoverR : hoverR;
+      const dhC = flipped ? 7 - hoverC : hoverC;
+      ctx.fillStyle = 'rgba(129,182,76,0.35)';
+      ctx.fillRect(dhC * SQ, dhR * SQ, SQ, SQ);
+    }
+  }
+
   // Valid move indicators
   for (const m of validMoves) {
     const mr = flipped ? 7 - m.r : m.r;
@@ -1090,6 +1314,9 @@ function drawBoard() {
       const p = board[r][c];
       if (p.type === EMPTY) continue;
 
+      // Skip the dragged piece in its original position (draw ghost instead)
+      const isDragSource = dragging && dragStarted && dragging.r === r && dragging.c === c;
+
       const dr = flipped ? 7 - r : r;
       const dc = flipped ? 7 - c : c;
 
@@ -1100,6 +1327,11 @@ function drawBoard() {
       if (cloakData && cloakData[p.color] && cloakData[p.color].visible &&
           cloakData[p.color].r === r && cloakData[p.color].c === c) {
         ctx.globalAlpha = 0.3;
+      }
+
+      // Ghost piece at source square while dragging
+      if (isDragSource) {
+        ctx.globalAlpha = 0.25;
       }
 
       const img = pieceImages[p.color] && pieceImages[p.color][p.type];
@@ -1121,6 +1353,35 @@ function drawBoard() {
 
       ctx.restore();
     }
+  }
+
+  // Draw the dragged piece at cursor position (on top of everything)
+  if (dragging && dragStarted && dragging.piece) {
+    ctx.save();
+    const img = pieceImages[dragging.piece.color] && pieceImages[dragging.piece.color][dragging.piece.type];
+    const size = SQ * 1.1; // slightly larger while dragging
+    const halfSize = size / 2;
+
+    // Drop shadow under dragged piece
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 6;
+
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, dragging.curX - halfSize, dragging.curY - halfSize, size, size);
+    } else {
+      const PIECE_SYMBOLS = {
+        [WHITE]: { [PAWN]:'♙', [KNIGHT]:'♘', [BISHOP]:'♗', [ROOK]:'♖', [QUEEN]:'♕', [KING]:'♔', [DRAGON]:'🐉', [SHADOW]:'🥷' },
+        [BLACK]: { [PAWN]:'♟', [KNIGHT]:'♞', [BISHOP]:'♝', [ROOK]:'♜', [QUEEN]:'♛', [KING]:'♚', [DRAGON]:'🐲', [SHADOW]:'👤' }
+      };
+      ctx.font = '48px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = dragging.piece.color === WHITE ? '#fff' : '#333';
+      ctx.fillText(PIECE_SYMBOLS[dragging.piece.color][dragging.piece.type] || '?', dragging.curX, dragging.curY);
+    }
+    ctx.restore();
   }
 
   // Coordinate labels
