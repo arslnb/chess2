@@ -1,58 +1,65 @@
-# Chess 2 Online
+# Chess 2
 
-Deployed on Railway.com
+A chess variant with new pieces, mechanics, and chaos. Play online against friends or an AI bot.
 
-Real-time multiplayer Chess 2 — with Dragons, Shadows, Energy, Duels, and more.
+**[Play it live](https://chess2-production.up.railway.app)**
 
-## Local Development
+## What's Different from Regular Chess
+
+- **Dragon** — moves like Queen + Knight. Can castle with the King.
+- **Shadow** — moves like a Bishop. Can cloak (become invisible for 2 turns, costs 1 energy).
+- **Energy** — both players start with 0, gain 1 per turn (max 5). Powers special abilities.
+- **Duels** — 15% chance on any capture that both pieces die.
+- **King's Decree** — spend 3 energy to push all adjacent enemy pieces one square away.
+- **Castling 2.0** — standard castling rules, plus Dragon castling.
+- **Pawn Promotion** — promotes to Queen, Rook, Bishop, Knight, or Dragon.
+
+## How to Play
+
+1. Go to the link above
+2. **Create Room** to get a 6-character code
+3. Send the code (or the URL with `?room=CODE`) to your opponent
+4. Or click **Play vs Computer** to play against the AI
+
+Game is fully server-authoritative. No cheating possible.
+
+## Run Locally
 
 ```bash
-cd online
 npm install
 npm start
-# Open http://localhost:3000
+# http://localhost:3000
 ```
-
-## How It Works
-
-1. One player clicks **Create Room** → gets a 6-character room code
-2. Share the code (or the URL with `?room=CODE`) with your opponent
-3. Opponent enters the code and joins
-4. Game is fully server-authoritative — no cheating possible
-5. After game over, click New Game to rematch (colors swap)
 
 ## Deploy
 
-### Railway (easiest)
-1. Push to GitHub
-2. Connect repo at [railway.app](https://railway.app)
-3. It auto-detects Node.js — deploys in ~60 seconds
-4. Get your public URL, share it
+Already deployed on Railway. To redeploy:
 
-### Fly.io
 ```bash
-fly launch
-fly deploy
+git push origin main
+# Railway auto-deploys from GitHub
 ```
 
-### Render
-1. New Web Service → connect repo
-2. Build: `npm install`, Start: `node server.js`
-3. Done
+Or use Docker:
 
-### Docker
 ```bash
-docker build -t chess2-online .
-docker run -p 3000:3000 chess2-online
+docker build -t chess2 .
+docker run -p 3000:3000 chess2
 ```
+
+## Tech
+
+- Node.js + Express + WebSocket (ws)
+- Server-side game engine with full move validation
+- AI opponent using minimax with alpha-beta pruning (depth 3)
+- Vanilla JS client with drag-and-drop
 
 ## Features
 
-- **Room-based matchmaking** with shareable links
-- **Server-authoritative engine** — all moves validated server-side
-- **Board auto-flips** for Black player
-- **Spectator mode** — extra players can watch
-- **All Chess 2 mechanics**: Dragon, Shadow, Energy, Cloak, King's Decree, Duels, Castling 2.0
-- **Responsive** — works on mobile
-- **Color swap** on rematch
-- **Auto-reconnect** on disconnect
+- Room-based multiplayer with shareable links
+- Play vs AI bot
+- Board auto-flips for Black
+- Spectator mode
+- Color swap on rematch
+- Auto-reconnect on disconnect
+- Works on mobile
